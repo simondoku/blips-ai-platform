@@ -1,0 +1,111 @@
+/* client/src/styles/global.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-blips-black text-blips-text-primary;
+  }
+  
+  body {
+    @apply font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-full transition duration-200 ease-in-out;
+  }
+  
+  .btn-primary {
+    @apply btn bg-blips-purple text-white hover:bg-blips-purple-dark;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-blips-dark text-white hover:bg-blips-card;
+  }
+  
+  .card {
+    @apply bg-blips-card rounded-lg overflow-hidden transition-all duration-200;
+  }
+  
+  .card-hover {
+    @apply hover:bg-blips-cardHover hover:shadow-glow;
+  }
+  
+  .nav-link {
+    @apply text-blips-text-primary hover:text-blips-purple transition duration-200;
+  }
+  
+  .nav-link-active {
+    @apply text-blips-purple;
+  }
+  
+  /* Image grid styles for Pinterest-like layout */
+  .masonry-grid {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-auto-rows: 10px;
+  }
+
+  /* Video player for the shorts view */
+  .video-player-container {
+    @apply relative w-full max-w-md mx-auto h-[80vh] bg-blips-dark rounded-lg overflow-hidden;
+  }
+  
+  /* Netflix-style rows */
+  .content-row {
+    @apply mb-8;
+  }
+  
+  .content-row-title {
+    @apply text-xl font-bold mb-4;
+  }
+  
+  .content-row-items {
+    @apply flex space-x-4 overflow-x-auto pb-4;
+  }
+  
+  /* Upload page styles */
+  .upload-zone {
+    @apply border-2 border-dashed border-blips-purple rounded-lg p-8 text-center
+    flex flex-col items-center justify-center bg-blips-dark bg-opacity-30;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-blips-dark;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-blips-purple-dark rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-blips-purple;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}

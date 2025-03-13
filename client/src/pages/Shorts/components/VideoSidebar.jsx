@@ -1,0 +1,134 @@
+// client/src/pages/Shorts/components/VideoSidebar.jsx
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+
+const VideoSidebar = ({ video }) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(video.creator.isFollowing);
+  const [isSaved, setIsSaved] = useState(false);
+  
+  // Updated stats based on user interactions
+  const likeCount = isLiked ? video.stats.likes + 1 : video.stats.likes;
+  const saveCount = isSaved ? video.stats.saves + 1 : video.stats.saves;
+  
+  // Format numbers for display (e.g. 1.2K instead of 1200)
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    } else {
+      return num.toString();
+    }
+  };
+  
+  return (
+    <div className="h-full py-4 flex flex-col items-center justify-center">
+      {/* Creator Avatar */}
+      <div className="mb-8 relative">
+        <div className="w-12 h-12 rounded-full bg-blips-purple flex items-center justify-center text-white text-xl font-bold">
+          {video.creator.displayName.charAt(0)}
+        </div>
+        
+        {/* Follow button */}
+        <motion.button 
+          className={`absolute -bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center ${
+            isFollowing ? 'bg-blips-purple' : 'bg-white'
+          }`}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsFollowing(!isFollowing)}
+        >
+          {isFollowing ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blips-purple" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+          )}
+        </motion.button>
+      </div>
+      
+      {/* Like Button */}
+      <div className="mb-6 flex flex-col items-center">
+        <motion.button 
+          className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            isLiked ? 'bg-red-500 bg-opacity-20' : 'bg-blips-dark'
+          }`}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsLiked(!isLiked)}
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className={`h-6 w-6 ${isLiked ? 'text-red-500' : 'text-white'}`} 
+            viewBox="0 0 20 20" 
+            fill="currentColor"
+          >
+            <path 
+              fillRule="evenodd" 
+              d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" 
+              clipRule="evenodd" 
+            />
+          </svg>
+        </motion.button>
+        <span className="text-xs text-white mt-1">{formatNumber(likeCount)}</span>
+      </div>
+      
+      {/* Comment Button */}
+      <div className="mb-6 flex flex-col items-center">
+        <motion.button 
+          className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
+          whileTap={{ scale: 0.9 }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </motion.button>
+        <span className="text-xs text-white mt-1">{formatNumber(video.stats.comments)}</span>
+      </div>
+      
+      {/* Share Button */}
+      <div className="mb-6 flex flex-col items-center">
+        <motion.button 
+          className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
+          whileTap={{ scale: 0.9 }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          </svg>
+        </motion.button>
+        <span className="text-xs text-white mt-1">{formatNumber(video.stats.shares)}</span>
+      </div>
+      
+      {/* Save Button */}
+      <div className="mb-6 flex flex-col items-center">
+        <motion.button 
+          className={`w-12 h-12 rounded-full flex items-center justify-center ${
+            isSaved ? 'bg-blips-purple bg-opacity-20' : 'bg-blips-dark'
+          }`}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsSaved(!isSaved)}
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            className={`h-6 w-6 ${isSaved ? 'text-blips-purple' : 'text-white'}`} 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" 
+            />
+          </svg>
+        </motion.button>
+        <span className="text-xs text-white mt-1">{formatNumber(saveCount)}</span>
+      </div>
+    </div>
+  );
+};
+
+export default VideoSidebar;
