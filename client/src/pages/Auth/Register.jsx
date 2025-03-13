@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
 
-const Register = ({ setIsAuthenticated }) => {
+const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -13,6 +14,7 @@ const Register = ({ setIsAuthenticated }) => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -74,13 +76,20 @@ const Register = ({ setIsAuthenticated }) => {
     
     setIsLoading(true);
     
-    // In a real app, this would call an API
-    // For now, we'll simulate registration with a timeout
-    setTimeout(() => {
-      setIsAuthenticated(true);
+    try {
+      await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      });
       navigate('/');
+    } catch (error) {
+      setErrors({
+        form: error.response?.data?.message || 'Registration failed. Please try again.'
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -117,6 +126,12 @@ const Register = ({ setIsAuthenticated }) => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-blips-dark py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {errors.form && (
+              <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded relative">
+                {errors.form}
+              </div>
+            )}
+            
             <div>
               <label htmlFor="username" className="block text-sm font-medium">
                 Username

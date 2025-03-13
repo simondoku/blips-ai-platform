@@ -1,22 +1,23 @@
 // client/src/App.jsx
 import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
 
-// Lazy-loaded pages for better performance
+// Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'));
 const Explore = lazy(() => import('./pages/Explore'));
 const Images = lazy(() => import('./pages/Images'));
+const ImageDetail = lazy(() => import('./pages/Images/ImageDetail'));
 const Shorts = lazy(() => import('./pages/Shorts'));
+const ShortDetail = lazy(() => import('./pages/Shorts/ShortDetail'));
 const Films = lazy(() => import('./pages/Films'));
+const FilmDetail = lazy(() => import('./pages/Films/FilmDetail'));
 const Upload = lazy(() => import('./pages/Upload'));
 const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
-const ImageDetail = lazy(() => import('./pages/Images/ImageDetail'));
-const ShortDetail = lazy(() => import('./pages/Shorts/ShortDetail'));
-const FilmDetail = lazy(() => import('./pages/Films/FilmDetail'));
 
 // Loading component
 const Loading = () => (
@@ -28,79 +29,73 @@ const Loading = () => (
   </div>
 );
 
-function App() {
-  // We'll replace this with actual auth logic later
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+// Protected route wrapper
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
   
-  // Protected route component
-  const ProtectedRoute = ({ children }) => {
-    return isAuthenticated ? children : <Navigate to="/login" />;
-  };
+  if (loading) {
+    return <Loading />;
+  }
+  
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
+  );
+}
+
+// Separate component to use useAuth hook inside Router
+function AppContent() {
+  const { isAuthenticated } = useAuth();
   
   return (
-    <Router>
-      <Suspense fallback={<Loading />}>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Layout isAuthenticated={isAuthenticated}><Home /></Layout>} />
-          <Route path="/explore" element={<Layout isAuthenticated={isAuthenticated}><Explore /></Layout>} />
-          <Route path="/images" element={<Layout isAuthenticated={isAuthenticated}><Images /></Layout>} />
-          <Route path="/shorts" element={<Layout isAuthenticated={isAuthenticated}><Shorts /></Layout>} />
-          <Route path="/films" element={<Layout isAuthenticated={isAuthenticated}><Films /></Layout>} />
-          
-          {/* Authentication Routes */}
-          <Route path="/login" element={
-            isAuthenticated 
-              ? <Navigate to="/" /> 
-              : <Layout withFooter={false} isAuthenticated={false}><Login setIsAuthenticated={setIsAuthenticated} /></Layout>
-          } />
-          <Route path="/register" element={
-            isAuthenticated 
-              ? <Navigate to="/" /> 
-              : <Layout withFooter={false} isAuthenticated={false}><Register setIsAuthenticated={setIsAuthenticated} /></Layout>
-          } />
-          
-          {/* Protected Routes */}
-          <Route path="/upload" element={
-            <ProtectedRoute>
-              <Layout isAuthenticated={isAuthenticated}><Upload /></Layout>
-            </ProtectedRoute>
-          } />
-          <Route path="/profile/*" element={
-            <ProtectedRoute>
-              <Layout isAuthenticated={isAuthenticated}><Profile /></Layout>
-            </ProtectedRoute>
-          } />
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/explore" element={<Layout><Explore /></Layout>} />
+        <Route path="/images" element={<Layout><Images /></Layout>} />
+        <Route path="/images/:id" element={<Layout><ImageDetail /></Layout>} />
+        <Route path="/shorts" element={<Layout><Shorts /></Layout>} />
+        <Route path="/shorts/:id" element={<Layout><ShortDetail /></Layout>} />
+        <Route path="/films" element={<Layout><Films /></Layout>} />
+        <Route path="/films/:id" element={<Layout><FilmDetail /></Layout>} />
+        
+        {/* Authentication Routes */}
+<Route path="/login" element={
+  isAuthenticated 
+    ? <Navigate to="/" /> 
+    : <Layout withFooter={false}><Login /></Layout>
+} />
 
-          {/* Detail Pages */}
-  <Route path="/images/:id" element={
-    <Layout isAuthenticated={isAuthenticated}>
-      <Suspense fallback={<Loading />}>
-        <ImageDetail />
-      </Suspense>
-    </Layout>
-  } />
-  
-  <Route path="/shorts/:id" element={
-    <Layout isAuthenticated={isAuthenticated}>
-      <Suspense fallback={<Loading />}>
-        <ShortDetail />
-      </Suspense>
-    </Layout>
-  } />
-  
-  <Route path="/films/:id" element={
-    <Layout isAuthenticated={isAuthenticated}>
-      <Suspense fallback={<Loading />}>
-        <FilmDetail />
-      </Suspense>
-    </Layout>
-  } />
-          {/* 404 Route */}
-          <Route path="*" element={<Layout isAuthenticated={isAuthenticated}><NotFound /></Layout>} />
-        </Routes>
-      </Suspense>
-    </Router>
+<Route path="/register" element={
+  isAuthenticated 
+    ? <Navigate to="/" /> 
+    : <Layout withFooter={false}><Register /></Layout>
+} />
+        
+        {/* Protected Routes */}
+        <Route path="/upload" element={
+          <ProtectedRoute>
+            <Layout><Upload /></Layout>
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/*" element={
+          <ProtectedRoute>
+            <Layout><Profile /></Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* 404 Route */}
+        <Route path="*" element={<Layout><NotFound /></Layout>} />
+      </Routes>
+    </Suspense>
   );
 }
 
