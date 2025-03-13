@@ -1,4 +1,4 @@
-// client/src/pages/Images/components/ImageGrid.jsx
+// Update to client/src/pages/Images/components/ImageGrid.jsx
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import ImageCard from './ImageCard';
@@ -27,11 +27,15 @@ const ImageGrid = ({ images }) => {
   
   // Distribute images into columns for masonry layout
   const getColumnImages = () => {
+    if (!images || images.length === 0) {
+      return Array(columns).fill([]);
+    }
+    
     const columnImages = Array.from({ length: columns }, () => []);
     
     images.forEach((image, i) => {
       const shortestColumnIndex = columnImages
-        .map(column => column.reduce((acc, img) => acc + img.height, 0))
+        .map(column => column.reduce((acc, img) => acc + (img.height || 300), 0))
         .reduce((minIndex, height, i, heights) => 
           height < heights[minIndex] ? i : minIndex, 0);
       
@@ -42,6 +46,15 @@ const ImageGrid = ({ images }) => {
   };
   
   const columnImages = getColumnImages();
+  
+  if (!images || images.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-2xl font-bold mb-2">No images found</h3>
+        <p className="text-blips-text-secondary">Try selecting a different category</p>
+      </div>
+    );
+  }
   
   return (
     <motion.div 

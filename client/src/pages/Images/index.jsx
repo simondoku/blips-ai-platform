@@ -31,17 +31,25 @@ const Images = () => {
   const [filteredImages, setFilteredImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('for-you');
+  const [error, setError] = useState(null);
   
   // Simulate fetching data from API
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      setTimeout(() => {
-        setImages(MOCK_IMAGES);
-        setFilteredImages(MOCK_IMAGES);
+      setError(null);
+      try {
+        // In a real app, this would be an API call
+        setTimeout(() => {
+          setImages(MOCK_IMAGES);
+          setFilteredImages(MOCK_IMAGES);
+          setIsLoading(false);
+        }, 1000);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load images. Please try again later.");
         setIsLoading(false);
-      }, 1000);
+      }
     };
     
     fetchData();
@@ -71,10 +79,14 @@ const Images = () => {
       {/* Category filter pills */}
       <div className="sticky top-15 bg-blips-black z-40 py-4 border-b border-blips-dark">
         <div className="container mx-auto px-4">
-          <CategoryFilter 
-            categories={categories}
-            onCategoryChange={handleCategoryChange}
-          />
+          {categories.length > 0 ? (
+            <CategoryFilter 
+              categories={categories}
+              onCategoryChange={handleCategoryChange}
+            />
+          ) : (
+            <div className="h-10 bg-blips-dark animate-pulse rounded-full w-full max-w-md"></div>
+          )}
         </div>
       </div>
       
@@ -83,12 +95,28 @@ const Images = () => {
           <div className="flex justify-center items-center h-64">
             <div className="w-12 h-12 border-4 border-blips-purple rounded-full animate-spin border-t-transparent"></div>
           </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <h3 className="text-2xl font-bold mb-4 text-red-500">{error}</h3>
+            <button 
+              onClick={() => window.location.reload()}
+              className="btn-primary"
+            >
+              Try Again
+            </button>
+          </div>
         ) : filteredImages.length > 0 ? (
           <ImageGrid images={filteredImages} />
         ) : (
           <div className="text-center py-12">
             <h3 className="text-2xl font-bold mb-2">No images found</h3>
-            <p className="text-blips-text-secondary">Try selecting a different category</p>
+            <p className="text-blips-text-secondary mb-4">Try selecting a different category</p>
+            <button 
+              onClick={() => handleCategoryChange('for-you')}
+              className="btn-primary"
+            >
+              View All Images
+            </button>
           </div>
         )}
       </div>

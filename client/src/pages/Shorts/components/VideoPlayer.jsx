@@ -1,6 +1,6 @@
 // client/src/pages/Shorts/components/VideoPlayer.jsx
 import { useState, useRef, useEffect } from 'react';
-import ReactPlayer from 'react-player';
+import { useNavigate } from 'react-router-dom';
 
 const VideoPlayer = ({ video, isAutoplay, onEnded }) => {
   const navigate = useNavigate();
@@ -9,7 +9,6 @@ const VideoPlayer = ({ video, isAutoplay, onEnded }) => {
   const [progress, setProgress] = useState(0);
   const playerRef = useRef(null);
   
-  
   // Reset state when video changes
   useEffect(() => {
     setIsPlaying(isAutoplay);
@@ -17,11 +16,8 @@ const VideoPlayer = ({ video, isAutoplay, onEnded }) => {
     setIsVideoReady(false);
   }, [video, isAutoplay]);
   
-  // In a real app, this would be the actual video URL
-  const videoUrl = `https://example.com/videos/${video.id}`;
-  
-   // Add function to navigate to detail page on click
-   const handleVideoClick = (e) => {
+  // Function to navigate to detail page
+  const handleVideoClick = (e) => {
     // Check if the click was on a control button (to prevent navigation)
     if (e.target.closest('button')) {
       return;
@@ -31,7 +27,7 @@ const VideoPlayer = ({ video, isAutoplay, onEnded }) => {
     navigate(`/shorts/${video.id}`);
   };
   
-  // Toggle play/pause only on button click
+  // Toggle play/pause on button click
   const togglePlayPause = (e) => {
     e.stopPropagation(); // Prevent navigation
     setIsPlaying(!isPlaying);
@@ -57,18 +53,18 @@ const VideoPlayer = ({ video, isAutoplay, onEnded }) => {
         {/* This would be replaced with an actual ReactPlayer in production */}
         <div className="text-4xl text-white opacity-50">AI Video</div>
         
-          {/* Play/Pause overlay - update onClick to use togglePlayPause */}
-      {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-          <div className="w-20 h-20 rounded-full bg-black/30 flex items-center justify-center backdrop-blur-sm">
-            <button onClick={togglePlayPause}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              </svg>
-            </button>
+        {/* Play/Pause overlay */}
+        {!isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <div className="w-20 h-20 rounded-full bg-black/30 flex items-center justify-center backdrop-blur-sm">
+              <button onClick={togglePlayPause}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
       
       {/* In a real implementation, this would be uncommented */}
@@ -92,7 +88,7 @@ const VideoPlayer = ({ video, isAutoplay, onEnded }) => {
       */}
       
       {/* Video Creator Info */}
-      <div className="absolute bottom-20 left-4 right-12 z-10">
+      <div className="absolute bottom-20 left-4 right-12 z-10" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-white font-bold text-lg">{video.creator.displayName}</h3>
         <p className="text-white/80 text-sm mb-2">@{video.creator.username}</p>
         <p className="text-white/90 text-sm">{video.description}</p>
@@ -107,10 +103,10 @@ const VideoPlayer = ({ video, isAutoplay, onEnded }) => {
       </div>
       
       {/* Video Controls */}
-      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
         <button 
           className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white"
-          onClick={() => setIsPlaying(!isPlaying)}
+          onClick={togglePlayPause}
         >
           {isPlaying ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
