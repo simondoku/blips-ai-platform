@@ -1,21 +1,31 @@
 // client/src/pages/Films/components/FilmCard.jsx
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const FilmCard = ({ film, index }) => {
+  const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   
-  // Delay to stagger animations
-  const delay = index * 0.05;
+  // Add function to navigate to detail page
+  const navigateToDetail = () => {
+    navigate(`/films/${film.id}`);
+  };
+  
+  // Prevent navigation when clicking on action buttons
+  const handleButtonClick = (e) => {
+    e.stopPropagation();
+  };
   
   return (
     <motion.div 
-      className="flex-shrink-0 relative"
+      className="flex-shrink-0 relative cursor-pointer"
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, delay }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={navigateToDetail}
     >
       {/* Base card */}
       <motion.div 
@@ -51,6 +61,10 @@ const FilmCard = ({ film, index }) => {
                 className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateToDetail();
+                }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
@@ -67,6 +81,7 @@ const FilmCard = ({ film, index }) => {
                   className="w-8 h-8 rounded-full bg-blips-purple flex items-center justify-center"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
+                  onClick={handleButtonClick}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
@@ -77,6 +92,7 @@ const FilmCard = ({ film, index }) => {
                   className="w-8 h-8 rounded-full bg-blips-dark border border-white/20 flex items-center justify-center"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
+                  onClick={handleButtonClick}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
@@ -88,6 +104,7 @@ const FilmCard = ({ film, index }) => {
                 className="w-8 h-8 rounded-full bg-blips-dark border border-white/20 flex items-center justify-center"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={handleButtonClick}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />

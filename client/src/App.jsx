@@ -14,6 +14,9 @@ const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const ImageDetail = lazy(() => import('./pages/Images/ImageDetail'));
+const ShortDetail = lazy(() => import('./pages/Shorts/ShortDetail'));
+const FilmDetail = lazy(() => import('./pages/Films/FilmDetail'));
 
 // Loading component
 const Loading = () => (
@@ -68,7 +71,31 @@ function App() {
               <Layout isAuthenticated={isAuthenticated}><Profile /></Layout>
             </ProtectedRoute>
           } />
-          
+
+          {/* Detail Pages */}
+  <Route path="/images/:id" element={
+    <Layout isAuthenticated={isAuthenticated}>
+      <Suspense fallback={<Loading />}>
+        <ImageDetail />
+      </Suspense>
+    </Layout>
+  } />
+  
+  <Route path="/shorts/:id" element={
+    <Layout isAuthenticated={isAuthenticated}>
+      <Suspense fallback={<Loading />}>
+        <ShortDetail />
+      </Suspense>
+    </Layout>
+  } />
+  
+  <Route path="/films/:id" element={
+    <Layout isAuthenticated={isAuthenticated}>
+      <Suspense fallback={<Loading />}>
+        <FilmDetail />
+      </Suspense>
+    </Layout>
+  } />
           {/* 404 Route */}
           <Route path="*" element={<Layout isAuthenticated={isAuthenticated}><NotFound /></Layout>} />
         </Routes>

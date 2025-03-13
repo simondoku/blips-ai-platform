@@ -1,5 +1,6 @@
 // client/src/pages/Shorts/components/VideoSidebar.jsx
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const VideoSidebar = ({ video }) => {
@@ -22,13 +23,22 @@ const VideoSidebar = ({ video }) => {
     }
   };
   
+  // Add a function to prevent event propagation for buttons
+  const handleButtonClick = (e) => {
+    e.stopPropagation();
+  };
+  
   return (
     <div className="h-full py-4 flex flex-col items-center justify-center">
       {/* Creator Avatar */}
       <div className="mb-8 relative">
-        <div className="w-12 h-12 rounded-full bg-blips-purple flex items-center justify-center text-white text-xl font-bold">
+        <Link
+          to={`/profile/${video.creator.username}`} 
+          className="w-12 h-12 rounded-full bg-blips-purple flex items-center justify-center text-white text-xl font-bold"
+          onClick={handleButtonClick}
+        >
           {video.creator.displayName.charAt(0)}
-        </div>
+        </Link>
         
         {/* Follow button */}
         <motion.button 
@@ -36,7 +46,10 @@ const VideoSidebar = ({ video }) => {
             isFollowing ? 'bg-blips-purple' : 'bg-white'
           }`}
           whileTap={{ scale: 0.9 }}
-          onClick={() => setIsFollowing(!isFollowing)}
+          onClick={(e) => {
+            handleButtonClick(e);
+            setIsFollowing(!isFollowing);
+          }}
         >
           {isFollowing ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
@@ -57,7 +70,10 @@ const VideoSidebar = ({ video }) => {
             isLiked ? 'bg-red-500 bg-opacity-20' : 'bg-blips-dark'
           }`}
           whileTap={{ scale: 0.9 }}
-          onClick={() => setIsLiked(!isLiked)}
+          onClick={(e) => {
+            handleButtonClick(e);
+            setIsLiked(!isLiked);
+          }}
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
@@ -80,6 +96,7 @@ const VideoSidebar = ({ video }) => {
         <motion.button 
           className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
           whileTap={{ scale: 0.9 }}
+          onClick={handleButtonClick}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -93,6 +110,7 @@ const VideoSidebar = ({ video }) => {
         <motion.button 
           className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
           whileTap={{ scale: 0.9 }}
+          onClick={handleButtonClick}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -108,7 +126,10 @@ const VideoSidebar = ({ video }) => {
             isSaved ? 'bg-blips-purple bg-opacity-20' : 'bg-blips-dark'
           }`}
           whileTap={{ scale: 0.9 }}
-          onClick={() => setIsSaved(!isSaved)}
+          onClick={(e) => {
+            handleButtonClick(e);
+            setIsSaved(!isSaved);
+          }}
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 

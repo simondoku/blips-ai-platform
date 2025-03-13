@@ -1,10 +1,16 @@
 // client/src/pages/Images/components/ImageCard.jsx
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+
 
 const ImageCard = ({ image, index }) => {
   const [isHovered, setIsHovered] = useState(false);
-  
+  const navigate = useNavigate();
+  // Add a click handler to navigate to the detail page
+  const handleClick = () => {
+    navigate(`/images/${image.id}`);
+  }
   return (
     <motion.div 
       className="rounded-lg overflow-hidden bg-blips-card"
@@ -13,6 +19,8 @@ const ImageCard = ({ image, index }) => {
       transition={{ duration: 0.3, delay: index * 0.05 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleClick}
+
     >
       <div className="relative">
         {/* Image placeholder with random color and height based on image height */}
