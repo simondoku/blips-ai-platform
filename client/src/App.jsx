@@ -3,6 +3,7 @@ import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
+import WelcomeAnimation from './components/animations/WelcomeAnimation';
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'));
@@ -18,6 +19,7 @@ const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 // Loading component
 const Loading = () => (
@@ -56,45 +58,60 @@ function AppContent() {
   
   return (
     <Suspense fallback={<Loading />}>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Layout><Home /></Layout>} />
-        <Route path="/explore" element={<Layout><Explore /></Layout>} />
-        <Route path="/images" element={<Layout><Images /></Layout>} />
-        <Route path="/images/:id" element={<Layout><ImageDetail /></Layout>} />
-        <Route path="/shorts" element={<Layout><Shorts /></Layout>} />
-        <Route path="/shorts/:id" element={<Layout><ShortDetail /></Layout>} />
-        <Route path="/films" element={<Layout><Films /></Layout>} />
-        <Route path="/films/:id" element={<Layout><FilmDetail /></Layout>} />
-        
-        {/* Authentication Routes */}
-<Route path="/login" element={
-  isAuthenticated 
-    ? <Navigate to="/" /> 
-    : <Layout withFooter={false}><Login /></Layout>
-} />
-
-<Route path="/register" element={
-  isAuthenticated 
-    ? <Navigate to="/" /> 
-    : <Layout withFooter={false}><Register /></Layout>
-} />
-        
-        {/* Protected Routes */}
-        <Route path="/upload" element={
-          <ProtectedRoute>
-            <Layout><Upload /></Layout>
-          </ProtectedRoute>
-        } />
-        <Route path="/profile/*" element={
-          <ProtectedRoute>
-            <Layout><Profile /></Layout>
-          </ProtectedRoute>
-        } />
-        
-        {/* 404 Route */}
-        <Route path="*" element={<Layout><NotFound /></Layout>} />
-      </Routes>
+    <Routes>
+    {/* Public Routes */}
+    <Route path="/" element={
+        isAuthenticated 
+        ? <Navigate to="/welcome" /> 
+        : <Layout><Home /></Layout>
+    } />
+    <Route path="/explore" element={<Layout><Explore /></Layout>} />
+    <Route path="/images" element={<Layout><Images /></Layout>} />
+    <Route path="/images/:id" element={<Layout><ImageDetail /></Layout>} />
+    <Route path="/shorts" element={<Layout><Shorts /></Layout>} />
+    <Route path="/shorts/:id" element={<Layout><ShortDetail /></Layout>} />
+    <Route path="/films" element={<Layout><Films /></Layout>} />
+    <Route path="/films/:id" element={<Layout><FilmDetail /></Layout>} />
+    
+    {/* Authentication Routes */}
+    <Route path="/login" element={
+        isAuthenticated 
+        ? <Navigate to="/welcome" /> 
+        : <Layout withFooter={false}><Login /></Layout>
+    } />
+    <Route path="/register" element={
+        isAuthenticated 
+        ? <Navigate to="/welcome" /> 
+        : <Layout withFooter={false}><Register /></Layout>
+    } />
+    
+    {/* Welcome Animation Route */}
+    <Route path="/welcome" element={
+        isAuthenticated 
+        ? <WelcomeAnimation />
+        : <Navigate to="/login" />
+    } />
+    
+    {/* Protected Routes */}
+    <Route path="/dashboard" element={
+        <ProtectedRoute>
+        <Layout><Dashboard /></Layout>
+        </ProtectedRoute>
+    } />
+    <Route path="/upload" element={
+        <ProtectedRoute>
+        <Layout><Upload /></Layout>
+        </ProtectedRoute>
+    } />
+    <Route path="/profile/*" element={
+        <ProtectedRoute>
+        <Layout><Profile /></Layout>
+        </ProtectedRoute>
+    } />
+    
+    {/* 404 Route */}
+    <Route path="*" element={<Layout><NotFound /></Layout>} />
+    </Routes>
     </Suspense>
   );
 }

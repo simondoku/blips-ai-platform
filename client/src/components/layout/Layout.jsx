@@ -1,16 +1,10 @@
 // client/src/components/layout/Layout.jsx
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import Header from './Header';
 import Footer from './Footer';
 
-const Layout = ({ children, withFooter = true, isAuthenticated = false }) => {
-  const location = useLocation();
-  
-  // Scroll to top when route changes
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+const Layout = ({ children, withFooter = true }) => {
+  const { isAuthenticated } = useAuth();
   
   return (
     <div className="flex flex-col min-h-screen bg-blips-black">

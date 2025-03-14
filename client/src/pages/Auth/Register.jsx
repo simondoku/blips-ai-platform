@@ -82,7 +82,7 @@ const Register = () => {
         email: formData.email,
         password: formData.password
       });
-      navigate('/');
+      navigate('/welcome'); // Redirect to welcome animation
     } catch (error) {
       setErrors({
         form: error.response?.data?.message || 'Registration failed. Please try again.'

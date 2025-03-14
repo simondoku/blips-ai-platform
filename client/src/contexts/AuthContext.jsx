@@ -3,7 +3,6 @@ import { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext();
-console.log('API URL being used:', api.defaults.baseURL);
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -75,10 +74,12 @@ export const AuthProvider = ({ children }) => {
   // Logout user
   const logout = async () => {
     try {
+      // Call the logout endpoint if needed
       await api.post('/auth/logout');
     } catch (error) {
       console.error('Logout API error:', error);
     } finally {
+      // Clear auth data regardless of API success
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setCurrentUser(null);

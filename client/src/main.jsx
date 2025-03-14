@@ -1,12 +1,14 @@
-// client/src/index.jsx
+// client/src/main.jsx or client/src/index.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { AuthProvider } from './contexts/AuthContext';
 import './styles/global.css';
 
-// Create a root and render the app
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </React.StrictMode>
 );
