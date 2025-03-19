@@ -2,6 +2,10 @@
 const mongoose = require('mongoose');
 const Content = require('../models/Content');
 const User = require('../models/User');
+const path = require('path');
+const fs = require('fs').promises;
+const { createCanvas } = require('canvas'); // You'll need to install this: npm install canvas
+
 // Get Images
 exports.getImages = async (req, res) => {
   try {
@@ -251,42 +255,167 @@ exports.getContentById = async (req, res) => {
 // Upload Content
 exports.uploadContent = async (req, res) => {
   try {
+    // Check if file was uploaded
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
-
-    // Get content type from query parameters
-    const contentType = req.query.contentType;
     
-    // Get other metadata from the request body
-    const { title, description, tags, category } = req.body;
+    const { 
+      title, 
+      description, 
+      category, 
+      tags,
+      duration 
+    } = req.body;
+    
+    // Get contentType from either the body or query parameters
+    const contentType = req.body.contentType || req.query.contentType;
+    
+    // Validate required fields
+    if (!title || !contentType) {
+      // If validation fails, delete the uploaded file
+      await fs.unlink(req.file.path);
+      return res.status(400).json({ message: 'Title and content type are required' });
+    }
+    
+    // Create file URL relative to server
+    let fileUrl = req.file.path.split('uploads')[1]; // Normalize path for all OSes
+    if (fileUrl.startsWith('/')) {
+      fileUrl = fileUrl.substring(1); // Remove leading slash
+    }
+    fileUrl = 'uploads/' + fileUrl;
+    
+    // Ensure path uses forward slashes for consistency across platforms
+    fileUrl = fileUrl.replace(/\\/g, '/')
+
+    // Handle thumbnails for different content types
+    let thumbnailUrl = '';
+    if (contentType === 'image') {
+      thumbnailUrl = fileUrl; // For images, use the same file as thumbnail
+    } else if (contentType === 'short' || contentType === 'film') {
+      // For videos, create a separate thumbnail file
+      // Generate a unique thumbnail filename
+      const thumbFilename = `thumb_${Date.now()}_${path.basename(fileUrl, path.extname(fileUrl))}.png`;
+      const thumbnailDir = path.join(path.dirname(req.file.path), '..', 'thumbnails');
+      
+      // Create thumbnails directory if it doesn't exist
+      try {
+        await fs.mkdir(thumbnailDir, { recursive: true });
+      } catch (mkdirErr) {
+        console.error('Error creating thumbnails directory:', mkdirErr);
+      }
+      
+      const thumbnailPath = path.join(thumbnailDir, thumbFilename);
+      
+      try {
+        // Create a simple canvas with the video title as a placeholder thumbnail
+        const canvas = createCanvas(480, 320);
+        const ctx = canvas.getContext('2d');
+        
+        // Draw a gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 480, 320);
+        gradient.addColorStop(0, '#1A1A25');
+        gradient.addColorStop(1, '#6C63FF');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 480, 320);
+        
+        // Add video title
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, 240, 160);
+        
+        // Add a play button icon
+        ctx.beginPath();
+        ctx.arc(240, 120, 40, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(225, 100);
+        ctx.lineTo(265, 120);
+        ctx.lineTo(225, 140);
+        ctx.closePath();
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        
+        // Save the canvas as a PNG
+        const buffer = canvas.toBuffer('image/png');
+        await fs.writeFile(thumbnailPath, buffer);
+        
+        // Create a relative URL for the thumbnail
+        thumbnailUrl = thumbnailPath.split('uploads')[1];
+        if (thumbnailUrl.startsWith('/')) {
+          thumbnailUrl = thumbnailUrl.substring(1);
+        }
+        thumbnailUrl = 'uploads/' + thumbnailUrl;
+        thumbnailUrl = thumbnailUrl.replace(/\\/g, '/'); // Ensure forward slashes
+        
+      } catch (thumbError) {
+        console.error('Error creating thumbnail:', thumbError);
+        // If thumbnail creation fails, use a placeholder
+        thumbnailUrl = '';
+      }
+    }
+    
+    // Parse tags
+    const parsedTags = tags ? 
+      tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : 
+      [];
     
     // Create content record
     const content = new Content({
-      title: title || 'Untitled',
+      title,
       description: description || '',
       contentType,
-      category: category || 'general',
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-      fileUrl: `/uploads/${contentType}s/${req.file.filename}`, // Changed from filePath to fileUrl
-      creator: req.user.id // Changed from user to creator
+      fileUrl,
+      thumbnailUrl,
+      creator: req.user.id,
+      duration: contentType === 'image' ? 0 : parseInt(duration || 0, 10),
+      category: category || 'other',
+      tags: parsedTags,
+      isPublic: true // Default to public
     });
-
+    
     await content.save();
-
-    res.status(201).json({ 
+    
+    // Get creator details to return with response
+    const creator = await User.findById(req.user.id)
+      .select('username displayName profileImage');
+    
+    // Format response
+    const contentResponse = {
+      ...content.toObject(),
+      creator: {
+        id: creator._id,
+        username: creator.username,
+        displayName: creator.displayName,
+        profileImage: creator.profileImage
+      }
+    };
+    
+    res.status(201).json({
       message: 'Content uploaded successfully',
-      content
+      content: contentResponse
     });
   } catch (error) {
     console.error('Upload error:', error);
+    
+    // Delete the uploaded file if it exists and there was an error
+    if (req.file && req.file.path) {
+      try {
+        await fs.unlink(req.file.path);
+      } catch (deleteError) {
+        console.error('Error deleting file:', deleteError);
+      }
+    }
+    
     res.status(500).json({ 
-      message: 'Error uploading content', 
+      message: 'Server error during upload', 
       error: error.message 
     });
   }
-};;
-
+};
 // Update Content
 exports.updateContent = async (req, res) => {
   try {

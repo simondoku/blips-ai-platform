@@ -135,27 +135,38 @@ const Upload = () => {
     e.preventDefault();
     
     if (!selectedFile) {
-      setError('Please select a file to upload');
+      setError('Please select a file to upload.');
       return;
     }
     
     if (!title.trim()) {
-      setError('Please enter a title');
+      setError('Please enter a title for your content.');
       return;
     }
     
     setIsSubmitting(true);
     setError('');
-    setSuccess('');
-    setUploadProgress(0);
     
     try {
       const formData = new FormData();
+      
+      // Log what we're adding to formData for debugging
+      console.log('Adding file:', selectedFile.name);
       formData.append('file', selectedFile);
+      
+      console.log('Adding title:', title);
       formData.append('title', title);
-      formData.append('description', description);
+      
+      console.log('Adding contentType:', selectedTab);
       formData.append('contentType', selectedTab);
-      formData.append('category', category);
+      
+      if (description) {
+        formData.append('description', description);
+      }
+      
+      if (category) {
+        formData.append('category', category);
+      }
       
       if (tags) {
         formData.append('tags', tags);
