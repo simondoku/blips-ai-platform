@@ -53,7 +53,7 @@ const contentSchema = new mongoose.Schema({
       default: 0
     },
     comments: {
-      type: Number,
+      type: Number,  // Changed from array to number
       default: 0
     },
     shares: {
@@ -83,6 +83,13 @@ const contentSchema = new mongoose.Schema({
 contentSchema.index({ contentType: 1, creator: 1, createdAt: -1 });
 contentSchema.index({ tags: 1 });
 contentSchema.index({ category: 1 });
+
+// Add virtual for comments relationship
+contentSchema.virtual('commentsData', {
+  ref: 'Comment',
+  localField: '_id',
+  foreignField: 'content'
+});
 
 const Content = mongoose.model('Content', contentSchema);
 module.exports = Content;

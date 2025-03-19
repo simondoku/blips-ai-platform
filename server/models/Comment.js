@@ -33,5 +33,8 @@ const commentSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
+// Add index for efficient retrieval
+commentSchema.index({ content: 1, createdAt: -1 });
+
 const Comment = mongoose.model('Comment', commentSchema);
 module.exports = Comment;

@@ -1,7 +1,7 @@
 // server/controllers/contentController.js
+const mongoose = require('mongoose');
 const Content = require('../models/Content');
 const User = require('../models/User');
-
 // Get Images
 exports.getImages = async (req, res) => {
   try {
@@ -190,28 +190,26 @@ exports.exploreContent = async (req, res) => {
     });
   }
 };
-// Get Content by ID
+
+// server/controllers/contentController.js
 exports.getContentById = async (req, res) => {
   try {
+    // Find content without updating it first
     const content = await Content.findById(req.params.id)
-      .populate('creator', 'username displayName profileImage bio')
-      .populate({
-        path: 'comments',
-        populate: {
-          path: 'user',
-          select: 'username displayName profileImage'
-        }
-      });
+      .populate('creator', 'username displayName profileImage bio');
     
     if (!content) {
       return res.status(404).json({ message: 'Content not found' });
     }
     
-    // Increment view count
-    content.stats.views += 1;
-    await content.save();
+    // Increment view count using findByIdAndUpdate instead of modifying and saving
+    await Content.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { 'stats.views': 1 } },
+      { new: true }
+    );
     
-    // Get similar content
+    // Find similar content
     const similar = await Content.find({
       _id: { $ne: content._id },
       contentType: content.contentType,
@@ -224,16 +222,31 @@ exports.getContentById = async (req, res) => {
       .limit(6)
       .populate('creator', 'username displayName');
     
-    res.json({ content, similar });
+    // Get comments if Comment model exists
+    let comments = [];
+    try {
+      const Comment = mongoose.model('Comment');
+      comments = await Comment.find({ content: content._id })
+        .sort({ createdAt: -1 })
+        .populate('user', 'username displayName profileImage');
+    } catch (commentError) {
+      // Comment model might not exist or other error, continue without comments
+      console.log('Comment fetching error:', commentError.message);
+    }
+    
+    res.json({
+      content,
+      similar,
+      comments
+    });
   } catch (error) {
+    console.error('Error in getContentById:', error);
     res.status(500).json({ 
       message: 'Server error', 
       error: error.message 
     });
   }
 };
-
-// Update this method:
 
 // Upload Content
 exports.uploadContent = async (req, res) => {
