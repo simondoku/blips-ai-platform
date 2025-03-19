@@ -48,51 +48,75 @@ const Dashboard = () => {
     }));
   };
   
-  // Content section component
-  const ContentSection = ({ title, content, emptyMessage, link }) => (
-    <section className="mb-12">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">{title}</h2>
-        <Link to={link} className="text-blips-purple hover:underline flex items-center">
-          View All
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
-        </Link>
+// Content section component
+const ContentSection = ({ title, content, emptyMessage, link }) => (
+  <section className="mb-12">
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-2xl font-bold">{title}</h2>
+      <Link to={link} className="text-blips-purple hover:underline flex items-center">
+        View All
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+        </svg>
+      </Link>
+    </div>
+    
+    {content && content.length > 0 ? (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {content.map((item, index) => {
+          // Determine content type (account for both API formats)
+          const contentType = item.type || item.contentType || 'content';
+          
+          // Handle URL paths appropriately
+          const urlPath = contentType === 'short' || contentType === 'film' ? 
+            `/${contentType}s/${item._id || item.id}` : 
+            `/images/${item._id || item.id}`;
+            
+        // In the ContentSection component, update the rendering code:
+return (
+  <motion.div
+    key={item._id || item.id || index}
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3, delay: index * 0.05 }}
+    className="card card-hover overflow-hidden"
+  >
+    <Link to={urlPath}>
+      <div className="aspect-video bg-gradient-to-br from-blips-dark to-blips-card flex items-center justify-center">
+        {item.fileUrl ? (
+          <img 
+            src={item.fileUrl.startsWith('/uploads') ? `http://localhost:5001${item.fileUrl}` : item.fileUrl} 
+            alt={item.title} 
+            className="w-full h-full object-cover" 
+          />
+        ) : (
+          <span className="text-2xl text-white opacity-30">
+            {(contentType && typeof contentType === 'string') 
+              ? contentType.charAt(0).toUpperCase() + contentType.slice(1) 
+              : 'Content'
+            }
+          </span>
+        )}
       </div>
-      
-      {content.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {content.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="card card-hover overflow-hidden"
-            >
-              <Link to={`/${item.type}s/${item.id}`}>
-                <div className="aspect-video bg-gradient-to-br from-blips-dark to-blips-card flex items-center justify-center">
-                  {/* This would be an actual thumbnail in production */}
-                  <span className="text-2xl text-white opacity-30">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
-                </div>
-                <div className="p-3">
-                  <h3 className="font-medium truncate">{item.title}</h3>
-                  <p className="text-sm text-blips-text-secondary">@{item.creator}</p>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-blips-dark rounded-lg p-8 text-center">
-          <p className="text-blips-text-secondary mb-4">{emptyMessage}</p>
-          <Link to="/explore" className="btn-primary inline-block">Explore Content</Link>
-        </div>
-      )}
-    </section>
-  );
-
+      <div className="p-3">
+        <h3 className="font-medium truncate">{item.title || 'Untitled'}</h3>
+        <p className="text-sm text-blips-text-secondary">
+          @{item.creator?.username || item.creator || 'unknown'}
+        </p>
+      </div>
+    </Link>
+  </motion.div>
+);
+        })}
+      </div>
+    ) : (
+      <div className="bg-blips-dark rounded-lg p-8 text-center">
+        <p className="text-blips-text-secondary mb-4">{emptyMessage}</p>
+        <Link to="/explore" className="btn-primary inline-block">Explore Content</Link>
+      </div>
+    )}
+  </section>
+);
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">

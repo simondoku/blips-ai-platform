@@ -108,39 +108,70 @@ exports.getFilms = async (req, res) => {
   }
 };
 
-// Explore Content (mixed)
+// Explore Content
 exports.exploreContent = async (req, res) => {
   try {
-    const { type, tag, search, limit = 30, page = 1 } = req.query;
+    const { sort = 'trending', category, tag, limit = 20, page = 1, following } = req.query;
     const skip = (page - 1) * limit;
     
     let query = { isPublic: true };
     
-    // Filter by content type
-    if (type && type !== 'all') {
-      query.contentType = type;
+    // Apply category filter if provided
+    if (category && category !== 'all') {
+      query.category = category;
     }
     
-    // Filter by tag
+    // Apply tag filter if provided
     if (tag) {
-      query.tags = tag;
+      query.tags = { $in: [tag] };
     }
     
-    // Search
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } }
-      ];
+    // If following is true and user is authenticated, filter by followed creators
+    if (following === 'true' && req.user) {
+      // This assumes you have a User model with a 'following' array
+      // You'll need to adapt this to your actual data model
+      const User = require('../models/User');
+      const currentUser = await User.findById(req.user.id);
+      if (currentUser && currentUser.following && currentUser.following.length > 0) {
+        query.creator = { $in: currentUser.following };
+      } else {
+        // If user isn't following anyone, return empty array
+        return res.json({ content: [] });
+      }
     }
     
+    // Determine sort order
+    let sortOptions = {};
+    switch (sort) {
+      case 'trending':
+        sortOptions = { 'stats.views': -1 };
+        break;
+      case 'newest':
+        sortOptions = { createdAt: -1 };
+        break;
+      case 'popular':
+        sortOptions = { 'stats.likes': -1 };
+        break;
+      case 'recommended':
+        // This would ideally use a recommendation algorithm
+        // For now, just use a mix of popularity and recency
+        sortOptions = { 
+          'stats.views': -1,
+          createdAt: -1
+        };
+        break;
+      default:
+        sortOptions = { createdAt: -1 };
+    }
+    
+    // Execute query
     const content = await Content.find(query)
-      .sort({ createdAt: -1 })
+      .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit))
       .populate('creator', 'username displayName profileImage');
     
+    // Get total count for pagination
     const total = await Content.countDocuments(query);
     
     res.json({
@@ -148,17 +179,17 @@ exports.exploreContent = async (req, res) => {
       pagination: {
         total,
         page: parseInt(page),
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / parseInt(limit))
       }
     });
   } catch (error) {
+    console.error('Error in exploreContent:', error);
     res.status(500).json({ 
       message: 'Server error', 
       error: error.message 
     });
   }
 };
-
 // Get Content by ID
 exports.getContentById = async (req, res) => {
   try {
@@ -202,44 +233,46 @@ exports.getContentById = async (req, res) => {
   }
 };
 
+// Update this method:
+
 // Upload Content
 exports.uploadContent = async (req, res) => {
   try {
-    const { title, description, contentType, category, tags, duration } = req.body;
-    
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
+
+    // Get content type from query parameters
+    const contentType = req.query.contentType;
     
-    // In a real app, this would be the file URL from S3/cloud storage
-    const fileUrl = req.file.path;
+    // Get other metadata from the request body
+    const { title, description, tags, category } = req.body;
     
-    // Create content
+    // Create content record
     const content = new Content({
-      title,
-      description,
+      title: title || 'Untitled',
+      description: description || '',
       contentType,
-      fileUrl,
-      thumbnailUrl: contentType === 'image' ? fileUrl : '', // For images, use same URL
-      creator: req.user.id,
-      duration: duration || 0,
-      category: category || 'other',
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+      category: category || 'general',
+      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+      fileUrl: `/uploads/${contentType}s/${req.file.filename}`, // Changed from filePath to fileUrl
+      creator: req.user.id // Changed from user to creator
     });
-    
+
     await content.save();
-    
-    res.status(201).json({
+
+    res.status(201).json({ 
       message: 'Content uploaded successfully',
       content
     });
   } catch (error) {
+    console.error('Upload error:', error);
     res.status(500).json({ 
-      message: 'Server error', 
+      message: 'Error uploading content', 
       error: error.message 
     });
   }
-};
+};;
 
 // Update Content
 exports.updateContent = async (req, res) => {

@@ -20,18 +20,40 @@ export const contentService = {
     return response.data;
   },
   
+
   // Get content by ID
   getContentById: async (id) => {
-    const response = await api.get(`/content/${id}`);
-    return response.data;
+    try {
+      const response = await api.get(`/content/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting content by ID:', error);
+      throw error;
+    }
+  },
+
+  // Get related content
+  getRelatedContent: async (id, limit = 6) => {
+    try {
+      const response = await api.get(`/content/${id}/related?limit=${limit}`);
+      return response.data.content || [];
+    } catch (error) {
+      console.error('Error getting related content:', error);
+      return []; // Return empty array instead of throwing
+    }
   },
   
-  // Explore content
-  exploreContent: async (params = {}) => {
+// Explore content
+exploreContent: async (params = {}) => {
+  try {
     const response = await api.get('/content/explore', { params });
     return response.data;
-  },
-  
+  } catch (error) {
+    console.error('Error exploring content:', error);
+    // Return a default structure that matches what your component expects
+    return { content: [] };
+  }
+},
   // Upload content
   uploadContent: async (formData) => {
     const response = await api.post('/content/upload', formData, {
