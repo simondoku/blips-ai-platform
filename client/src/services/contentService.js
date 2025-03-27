@@ -1,27 +1,62 @@
-// client/src/services/contentService.js
+// client/src/services/contentService.js - Updated with real API endpoints
 import api from './api';
 
 export const contentService = {
-  // Get images
+  // Get images with proper error handling
   getImages: async (params = {}) => {
-    const response = await api.get('/content/images', { params });
-    return response.data;
+    try {
+      const response = await api.get('/content/images', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      // Return fallback structure in case of error
+      return { 
+        images: [], 
+        pagination: { total: 0, page: 1, pages: 0 } 
+      };
+    }
   },
   
   // Get shorts
   getShorts: async (params = {}) => {
-    const response = await api.get('/content/shorts', { params });
-    return response.data;
+    try {
+      const response = await api.get('/content/shorts', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching shorts:', error);
+      return { 
+        shorts: [], 
+        pagination: { total: 0, page: 1, pages: 0 } 
+      };
+    }
   },
   
   // Get films
   getFilms: async (params = {}) => {
-    const response = await api.get('/content/films', { params });
-    return response.data;
+    try {
+      const response = await api.get('/content/films', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching films:', error);
+      return { 
+        films: [], 
+        pagination: { total: 0, page: 1, pages: 0 } 
+      };
+    }
+  },
+
+  // Explore content with better error handling
+  exploreContent: async (params = {}) => {
+    try {
+      const response = await api.get('/content/explore', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error exploring content:', error);
+      return { content: [], pagination: { total: 0, page: 1, pages: 0 } };
+    }
   },
   
-
-  // Get content by ID
+  // Get content by ID with proper error handling
   getContentById: async (id) => {
     try {
       const response = await api.get(`/content/${id}`);
@@ -32,7 +67,7 @@ export const contentService = {
     }
   },
 
-  // Get related content
+  // Get related content with better error handling
   getRelatedContent: async (id, limit = 6) => {
     try {
       const response = await api.get(`/content/${id}/related?limit=${limit}`);
@@ -43,81 +78,71 @@ export const contentService = {
     }
   },
   
-// Explore content
-exploreContent: async (params = {}) => {
-  try {
-    const response = await api.get('/content/explore', { params });
-    return response.data;
-  } catch (error) {
-    console.error('Error exploring content:', error);
-    // Return a default structure that matches what your component expects
-    return { content: [] };
-  }
-},
-  // Upload content
-  uploadContent: async (formData) => {
-    const response = await api.post('/content/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    return response.data;
-  },
-  
-  // Update content
-  updateContent: async (id, data) => {
-    const response = await api.put(`/content/${id}`, data);
-    return response.data;
-  },
-  
-  // Delete content
-  deleteContent: async (id) => {
-    const response = await api.delete(`/content/${id}`);
-    return response.data;
-  },
-  
-  // Like content
+  // Content interaction methods
   likeContent: async (id) => {
-    const response = await api.post(`/content/${id}/like`);
-    return response.data;
-  },
-  
-  // Unlike content
-  unlikeContent: async (id) => {
-    const response = await api.post(`/content/${id}/unlike`);
-    return response.data;
-  },
-  
-  // Save content
-  saveContent: async (id) => {
-    const response = await api.post(`/content/${id}/save`);
-    return response.data;
-  },
-  
-  // Unsave content
-  unsaveContent: async (id) => {
-    const response = await api.post(`/content/${id}/unsave`);
-    return response.data;
-  },
-  
-  generateThumbnailUrl: (contentItem) => {
-    if (!contentItem) return null;
-    
-    // Ensure the URL is properly formatted
-    if (contentItem.thumbnailUrl) {
-      return contentItem.thumbnailUrl.startsWith('http') 
-        ? contentItem.thumbnailUrl 
-        : `http://localhost:5001/${contentItem.thumbnailUrl}`;
-    } else if (contentItem.fileUrl && contentItem.contentType === 'image') {
-      // For images, use the image itself as the thumbnail
-      return contentItem.fileUrl.startsWith('http')
-        ? contentItem.fileUrl
-        : `http://localhost:5001/${contentItem.fileUrl}`;
+    try {
+      const response = await api.post(`/content/${id}/like`);
+      return response.data;
+    } catch (error) {
+      console.error('Error liking content:', error);
+      throw error;
     }
-    
-    // Return a placeholder for videos without thumbnails
-    return '/placeholder-thumbnail.jpg';
+  },
+  
+  unlikeContent: async (id) => {
+    try {
+      const response = await api.post(`/content/${id}/unlike`);
+      return response.data;
+    } catch (error) {
+      console.error('Error unliking content:', error);
+      throw error;
+    }
+  },
+  
+  saveContent: async (id) => {
+    try {
+      const response = await api.post(`/content/${id}/save`);
+      return response.data;
+    } catch (error) {
+      console.error('Error saving content:', error);
+      throw error;
+    }
+  },
+  
+  unsaveContent: async (id) => {
+    try {
+      const response = await api.post(`/content/${id}/unsave`);
+      return response.data;
+    } catch (error) {
+      console.error('Error unsaving content:', error);
+      throw error;
+    }
+  },
+  
+  // Upload content with progress tracking
+  uploadContent: async (formData, onProgress) => {
+    try {
+      const contentType = formData.get('contentType');
+      
+      const response = await api.post(`/content/upload?contentType=${contentType}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          if (onProgress) {
+            onProgress(percentCompleted);
+          }
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error uploading content:', error);
+      throw error;
+    }
   }
-
 };
+
 export default contentService;

@@ -3,127 +3,173 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import contentService from '../../services/contentService';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const Dashboard = () => {
   const [trendingContent, setTrendingContent] = useState([]);
   const [forYouContent, setForYouContent] = useState([]);
   const [followingContent, setFollowingContent] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-// Update the fetchContent function in your useEffect:
-
-useEffect(() => {
-  const fetchContent = async () => {
-    setIsLoading(true);
-    try {
-      // In a real app, these would be separate API calls
-      const trending = await contentService.exploreContent({ sort: 'trending', limit: 8 });
-      const forYou = await contentService.exploreContent({ sort: 'recommended', limit: 8 });
-      const following = await contentService.exploreContent({ following: 'true', limit: 8 });
+  useEffect(() => {
+    const fetchContent = async () => {
+      setIsLoading(true);
+      setError(null);
       
-      console.log('Trending data:', trending);
-      
-      setTrendingContent(trending?.content || []);
-      setForYouContent(forYou?.content || []);
-      setFollowingContent(following?.content || []);
-    } catch (err) {
-      console.error('Error fetching dashboard content:', err);
-      // Set default values on error
-      setTrendingContent([]);
-      setForYouContent([]);
-      setFollowingContent([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  fetchContent();
-}, []);
-  // Mock data generator for development
-  const generateMockContent = (count) => {
-    return Array.from({ length: count }).map((_, index) => ({
-      id: `content-${index}`,
-      title: `AI Creation #${index + 1}`,
-      creator: `creator${index % 5}`,
-      creatorName: `Creator ${index % 5}`,
-      type: ['image', 'short', 'film'][index % 3],
-      thumbnailUrl: null
-    }));
-  };
-  
-// Content section component
-const ContentSection = ({ title, content, emptyMessage, link }) => (
-  <section className="mb-12">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-2xl font-bold">{title}</h2>
-      <Link to={link} className="text-blips-purple hover:underline flex items-center">
-        View All
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-        </svg>
-      </Link>
-    </div>
+      try {
+        // Fetch trending content
+        const trending = await contentService.exploreContent({ 
+          sort: 'trending', 
+          limit: 8 
+        });
+        
+        // Fetch recommended content
+        const forYou = await contentService.exploreContent({ 
+          sort: 'recommended', 
+          limit: 8 
+        });
+        
+        // Fetch content from creators you follow
+        const following = await contentService.exploreContent({ 
+          following: true, 
+          limit: 8 
+        });
+        
+        setTrendingContent(trending.content || []);
+        setForYouContent(forYou.content || []);
+        setFollowingContent(following.content || []);
+      } catch (error) {
+        console.error('Error fetching dashboard content:', error);
+        setError('Failed to load content. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    {content && content.length > 0 ? (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {content.map((item, index) => {
-          // Determine content type (account for both API formats)
-          const contentType = item.type || item.contentType || 'content';
-          
-          // Handle URL paths appropriately
-          const urlPath = contentType === 'short' || contentType === 'film' ? 
-            `/${contentType}s/${item._id || item.id}` : 
-            `/images/${item._id || item.id}`;
+    fetchContent();
+  }, []);
+
+  // Content section component
+  const ContentSection = ({ title, content, emptyMessage, link }) => (
+    <section className="mb-12">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">{title}</h2>
+        <Link to={link} className="text-blips-purple hover:underline flex items-center">
+          View All
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+          </svg>
+        </Link>
+      </div>
+      
+      {content && content.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {content.map((item, index) => {
+            // Determine content type
+            const contentType = item.contentType || 'content';
             
-        // In the ContentSection component, update the rendering code:
-return (
-  <motion.div
-    key={item._id || item.id || index}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3, delay: index * 0.05 }}
-    className="card card-hover overflow-hidden"
-  >
-    <Link to={urlPath}>
-      <div className="aspect-video bg-gradient-to-br from-blips-dark to-blips-card flex items-center justify-center">
-        {item.fileUrl ? (
-          <img 
-            src={item.fileUrl.startsWith('/uploads') ? `http://localhost:5001${item.fileUrl}` : item.fileUrl} 
-            alt={item.title} 
-            className="w-full h-full object-cover" 
-          />
-        ) : (
-          <span className="text-2xl text-white opacity-30">
-            {(contentType && typeof contentType === 'string') 
-              ? contentType.charAt(0).toUpperCase() + contentType.slice(1) 
-              : 'Content'
-            }
-          </span>
-        )}
-      </div>
-      <div className="p-3">
-        <h3 className="font-medium truncate">{item.title || 'Untitled'}</h3>
-        <p className="text-sm text-blips-text-secondary">
-          @{item.creator?.username || item.creator || 'unknown'}
-        </p>
-      </div>
-    </Link>
-  </motion.div>
-);
-        })}
-      </div>
-    ) : (
-      <div className="bg-blips-dark rounded-lg p-8 text-center">
-        <p className="text-blips-text-secondary mb-4">{emptyMessage}</p>
-        <Link to="/explore" className="btn-primary inline-block">Explore Content</Link>
-      </div>
-    )}
-  </section>
-);
+            // Handle URL paths appropriately
+            const urlPath = contentType === 'short' || contentType === 'film' ? 
+              `/${contentType}s/${item._id || item.id}` : 
+              `/images/${item._id || item.id}`;
+            
+            // Get preview image URL with proper handling
+            const imageUrl = getContentImageUrl(item);
+              
+            return (
+              <motion.div
+                key={item._id || item.id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="card card-hover overflow-hidden"
+              >
+                <Link to={urlPath}>
+                  <div className="aspect-video bg-gradient-to-br from-blips-dark to-blips-card flex items-center justify-center">
+                    {imageUrl ? (
+                      <img 
+                        src={imageUrl} 
+                        alt={item.title} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150"><rect width="200" height="150" fill="%23242435"/><text x="50%" y="50%" font-family="Arial" font-size="18" fill="white" text-anchor="middle" dominant-baseline="middle">${contentType.charAt(0).toUpperCase() + contentType.slice(1)}</text></svg>`;
+                        }}
+                      />
+                    ) : (
+                      <span className="text-2xl text-white opacity-30">
+                        {contentType.charAt(0).toUpperCase() + contentType.slice(1)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-medium truncate">{item.title || 'Untitled'}</h3>
+                    <p className="text-sm text-blips-text-secondary">
+                      @{item.creator?.username || 'unknown'}
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="bg-blips-dark rounded-lg p-8 text-center">
+          <p className="text-blips-text-secondary mb-4">{emptyMessage}</p>
+          <Link to="/explore" className="btn-primary inline-block">Explore Content</Link>
+        </div>
+      )}
+    </section>
+  );
+
+  // Helper function to get correct image URL
+  const getContentImageUrl = (item) => {
+    if (!item) return null;
+    
+    const url = item.contentType === 'image' ? 
+      item.fileUrl : 
+      item.thumbnailUrl;
+    
+    if (!url) return null;
+    
+    // If it's an absolute URL, return as is
+    if (url.startsWith('http')) {
+      return url;
+    }
+    
+    // If it's a relative path starting with uploads
+    if (url.startsWith('/uploads')) {
+      return `http://localhost:5001${url}`;
+    }
+    
+    // If it's a relative path without leading slash
+    if (url.startsWith('uploads/')) {
+      return `http://localhost:5001/${url}`;
+    }
+    
+    // Default fallback
+    return `http://localhost:5001/${url}`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-blips-purple rounded-full animate-spin border-t-transparent"></div>
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center">
+        <div className="text-red-500 mb-4">{error}</div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="btn-primary"
+        >
+          Try Again
+        </button>
       </div>
     );
   }

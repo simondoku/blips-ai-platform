@@ -1,23 +1,30 @@
 // client/src/pages/Shorts/ShortDetail.jsx
-// Update the relevant part to handle real videos
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { contentService } from '../../services/contentService';
 import ReactPlayer from 'react-player';
+import contentService from '../../services/contentService';
+import commentService from '../../services/commentService';
+import { useAuth } from '../../contexts/AuthContext';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const ShortDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [video, setVideo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   const [similar, setSimilar] = useState([]);
   const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const playerRef = useRef(null);
   
   // Fetch video details
@@ -29,16 +36,43 @@ const ShortDetail = () => {
         
         const response = await contentService.getContentById(id);
         
+        if (!response || !response.content) {
+          setError('Failed to load video details');
+          setIsLoading(false);
+          return;
+        }
+        
+        const videoData = response.content;
+        
         // Make sure it's a video
-        if (response.content.contentType !== 'short') {
+        if (videoData.contentType !== 'short') {
           setError('This content is not a short video');
           setIsLoading(false);
           return;
         }
         
-        setVideo(response.content);
-        setSimilar(response.similar || []);
-        setComments(response.comments || []);
+        setVideo(videoData);
+        setIsLiked(videoData.isLiked || false);
+        setIsSaved(videoData.isSaved || false);
+        
+        // Set similar videos if available
+        if (response.similar && response.similar.length > 0) {
+          setSimilar(response.similar);
+        } else {
+          // Fallback to fetch related content
+          const relatedVideos = await contentService.getRelatedContent(id);
+          setSimilar(relatedVideos || []);
+        }
+        
+        // Set comments if available
+        if (response.comments && response.comments.length > 0) {
+          setComments(response.comments);
+        } else {
+          // Fallback to fetch comments separately
+          const commentsResponse = await commentService.getComments(id);
+          setComments(commentsResponse.comments || []);
+        }
+        
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching video details:', err);
@@ -64,20 +98,162 @@ const ShortDetail = () => {
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+    
+    if (playerRef.current) {
+      playerRef.current.volume = newVolume;
+    }
+  };
+  
+  // Toggle mute
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+    if (playerRef.current) {
+      playerRef.current.muted = !isMuted;
+    }
+  };
+  
+  // Handle seeking
+  const handleSeek = (e) => {
+    const newProgress = parseFloat(e.target.value) / 100;
+    setProgress(newProgress);
+    
+    if (playerRef.current && playerRef.current.seekTo) {
+      playerRef.current.seekTo(newProgress);
+    }
+  };
+  
+  // Handle like/unlike
+  const handleLikeToggle = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      setIsLiked(!isLiked);
+      const endpoint = isLiked ? 'unlikeContent' : 'likeContent';
+      
+      await contentService[endpoint](id);
+      
+      // Update like count in video data
+      setVideo(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          likes: isLiked ? Math.max(0, prev.stats.likes - 1) : prev.stats.likes + 1
+        }
+      }));
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Revert UI state on error
+      setIsLiked(!isLiked);
+    }
+  };
+  
+  // Handle save/unsave
+  const handleSaveToggle = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      setIsSaved(!isSaved);
+      const endpoint = isSaved ? 'unsaveContent' : 'saveContent';
+      
+      await contentService[endpoint](id);
+      
+      // Update save count in video data
+      setVideo(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          saves: isSaved ? Math.max(0, prev.stats.saves - 1) : prev.stats.saves + 1
+        }
+      }));
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      // Revert UI state on error
+      setIsSaved(!isSaved);
+    }
+  };
+  
+  // Handle comment submission
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    if (!commentText.trim()) return;
+    
+    setIsSubmittingComment(true);
+    
+    try {
+      const response = await commentService.addComment(id, { text: commentText });
+      
+      // Add the new comment to the list
+      setComments(prev => [response, ...prev]);
+      setCommentText('');
+      
+      // Update comment count in video data
+      setVideo(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          comments: prev.stats.comments + 1
+        }
+      }));
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+  
+  // Helper function to get correct URL
+  const getUrl = (url) => {
+    if (!url) return null;
+    
+    // If it's an absolute URL, return as is
+    if (url.startsWith('http')) {
+      return url;
+    }
+    
+    // If it's a relative path starting with uploads
+    if (url.startsWith('/uploads')) {
+      return `http://localhost:5001${url}`;
+    }
+    
+    // If it's a relative path without leading slash
+    if (url.startsWith('uploads/')) {
+      return `http://localhost:5001/${url}`;
+    }
+    
+    // Default fallback
+    return `http://localhost:5001/${url}`;
+  };
+  
+  // Function to navigate back
+  const handleGoBack = () => {
+    navigate(-1);
   };
   
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="w-12 h-12 border-4 border-blips-purple rounded-full animate-spin border-t-transparent"></div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
   
-  if (error) {
+  if (error || !video) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
-        <div className="text-red-500 mb-4">{error}</div>
+        <div className="text-red-500 mb-4">{error || 'Video not found'}</div>
         <button 
           className="btn-primary"
           onClick={() => navigate('/shorts')}
@@ -89,17 +265,11 @@ const ShortDetail = () => {
   }
   
   // Construct the video URL
-  // In a production app, this would be a complete URL to your CDN or storage
-  const videoUrl = video.fileUrl.startsWith('http') 
-    ? video.fileUrl 
-    : `http://localhost:5001${video.fileUrl}`;
-  const handleGoBack = () => {
-      navigate(-1); // This navigates back to the previous page
-    };
+  const videoUrl = getUrl(video.fileUrl);
   
   return (
     <div className="h-[calc(100vh-60px)] bg-blips-black flex">
-      {/* Add back button */}
+      {/* Back button */}
       <button 
         onClick={handleGoBack}
         className="absolute top-20 left-4 z-50 bg-blips-dark/50 hover:bg-blips-dark p-2 rounded-full backdrop-blur-sm"
@@ -108,7 +278,8 @@ const ShortDetail = () => {
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
-  </button>
+      </button>
+      
       {/* Main video player */}
       <main className="flex-grow flex justify-center items-center">
         <div className="relative w-full max-w-md h-full">
@@ -117,28 +288,34 @@ const ShortDetail = () => {
             onClick={togglePlayPause}
           >
             {/* Actual video player */}
-            <ReactPlayer
-              ref={playerRef}
-              url={videoUrl}
-              width="100%"
-              height="100%"
-              playing={isPlaying}
-              loop={false}
-              volume={volume}
-              muted={volume === 0}
-              playsinline
-              onProgress={handleProgress}
-              onClick={togglePlayPause}
-              style={{ position: 'absolute', top: 0, left: 0 }}
-              config={{
-                file: {
-                  attributes: {
-                    controlsList: 'nodownload',
-                    disablePictureInPicture: true,
+            {videoUrl ? (
+              <ReactPlayer
+                ref={playerRef}
+                url={videoUrl}
+                width="100%"
+                height="100%"
+                playing={isPlaying}
+                loop={false}
+                volume={volume}
+                muted={isMuted}
+                playsinline
+                onProgress={handleProgress}
+                onClick={togglePlayPause}
+                style={{ position: 'absolute', top: 0, left: 0 }}
+                config={{
+                  file: {
+                    attributes: {
+                      controlsList: 'nodownload',
+                      disablePictureInPicture: true,
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-blips-purple/20 to-blips-dark flex items-center justify-center">
+                <div className="text-4xl text-white opacity-50">Video Unavailable</div>
+              </div>
+            )}
             
             {/* Play/Pause overlay */}
             {!isPlaying && (
@@ -157,9 +334,11 @@ const ShortDetail = () => {
             
             {/* Video Creator Info */}
             <div className="absolute bottom-20 left-4 right-12 z-10">
-              <h3 className="text-white font-bold text-lg">{video.creator?.displayName}</h3>
-              <p className="text-white/80 text-sm mb-2">@{video.creator?.username}</p>
-              <p className="text-white/90 text-sm">{video.description}</p>
+              <h3 className="text-white font-bold text-lg">{video.title || 'Untitled'}</h3>
+              <Link to={`/profile/${video.creator?.username}`} className="text-white/80 text-sm mb-2 hover:text-blips-purple">
+                @{video.creator?.username}
+              </Link>
+              <p className="text-white/90 text-sm">{video.description || ''}</p>
             </div>
             
             {/* Progress bar */}
@@ -191,9 +370,9 @@ const ShortDetail = () => {
               <div className="flex items-center">
                 <button 
                   className="w-8 h-8 flex items-center justify-center text-white/80 hover:text-white"
-                  onClick={() => setVolume(volume === 0 ? 1 : 0)}
+                  onClick={toggleMute}
                 >
-                  {volume === 0 ? (
+                  {isMuted ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
@@ -222,8 +401,6 @@ const ShortDetail = () => {
       
       {/* Right sidebar - video interactions */}
       <aside className="w-16 md:w-20 border-l border-blips-dark flex flex-col items-center">
-        {/* VideoSidebar component integration would go here */}
-        {/* For now, we'll include a simplified version */}
         <div className="h-full py-4 flex flex-col items-center justify-center">
           {/* Creator Avatar */}
           <div className="mb-8 relative">
@@ -231,18 +408,47 @@ const ShortDetail = () => {
               to={`/profile/${video.creator?.username}`} 
               className="w-12 h-12 rounded-full bg-blips-purple flex items-center justify-center text-white text-xl font-bold"
             >
-              {video.creator?.displayName?.[0] || 'U'}
+              {video.creator?.displayName?.[0] || video.creator?.username?.[0] || 'U'}
             </Link>
+            
+            {isAuthenticated && video.creator?.username && (
+              <motion.button 
+                className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center bg-blips-dark hover:bg-blips-purple transition-colors"
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Follow/unfollow functionality would go here
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </motion.button>
+            )}
           </div>
           
           {/* Like Button */}
           <div className="mb-6 flex flex-col items-center">
             <motion.button 
-              className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
+              className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                isLiked ? 'bg-red-500 bg-opacity-20' : 'bg-blips-dark'
+              }`}
               whileTap={{ scale: 0.9 }}
+              onClick={handleLikeToggle}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className={`h-6 w-6 ${isLiked ? 'text-red-500' : 'text-white'}`} 
+                fill={isLiked ? "currentColor" : "none"}
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                />
               </svg>
             </motion.button>
             <span className="text-xs text-white mt-1">{video.stats?.likes || 0}</span>
@@ -253,6 +459,14 @@ const ShortDetail = () => {
             <motion.button 
               className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
               whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                // Toggle comment drawer visibility
+                const drawer = document.getElementById('comments-drawer');
+                if (drawer) {
+                  drawer.classList.toggle('translate-y-full');
+                  drawer.classList.toggle('translate-y-0');
+                }
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -266,6 +480,21 @@ const ShortDetail = () => {
             <motion.button 
               className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
               whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                // Share functionality
+                if (navigator.share) {
+                  navigator.share({
+                    title: video.title,
+                    text: video.description,
+                    url: window.location.href
+                  }).catch(err => console.error('Error sharing:', err));
+                } else {
+                  // Fallback - copy to clipboard
+                  navigator.clipboard.writeText(window.location.href)
+                    .then(() => alert('Link copied to clipboard!'))
+                    .catch(err => console.error('Could not copy link:', err));
+                }
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -277,17 +506,139 @@ const ShortDetail = () => {
           {/* Save Button */}
           <div className="mb-6 flex flex-col items-center">
             <motion.button 
-              className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
+              className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                isSaved ? 'bg-blips-purple bg-opacity-20' : 'bg-blips-dark'
+              }`}
               whileTap={{ scale: 0.9 }}
+              onClick={handleSaveToggle}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className={`h-6 w-6 ${isSaved ? 'text-blips-purple' : 'text-white'}`}
+                fill={isSaved ? "currentColor" : "none"}
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" 
+                />
               </svg>
             </motion.button>
             <span className="text-xs text-white mt-1">{video.stats?.saves || 0}</span>
           </div>
+          
+          {/* Download Button */}
+          <div className="mb-6 flex flex-col items-center">
+            <motion.button 
+              className="w-12 h-12 rounded-full bg-blips-dark flex items-center justify-center"
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                // Download functionality
+                const downloadLink = document.createElement('a');
+                downloadLink.href = videoUrl;
+                downloadLink.download = video.title || 'blips-short';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </motion.button>
+            <span className="text-xs text-white mt-1">Download</span>
+          </div>
         </div>
       </aside>
+      
+      {/* Comment section - sliding drawer */}
+      <div className="fixed bottom-0 left-0 right-0 transform translate-y-full bg-blips-dark rounded-t-lg shadow-lg transition-transform duration-300 ease-in-out z-50" id="comments-drawer">
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold">Comments ({comments.length})</h3>
+            <button className="text-blips-text-secondary" onClick={() => {
+              const drawer = document.getElementById('comments-drawer');
+              if (drawer) {
+                drawer.classList.add('translate-y-full');
+                drawer.classList.remove('translate-y-0');
+              }
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Comment form */}
+          {isAuthenticated ? (
+            <form onSubmit={handleCommentSubmit} className="mb-4">
+              <div className="flex">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="flex-grow bg-blips-card rounded-l-md px-4 py-2 focus:outline-none focus:ring-1 focus:ring-blips-purple"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmittingComment || !commentText.trim()}
+                  className="bg-blips-purple px-4 py-2 rounded-r-md text-white disabled:opacity-50"
+                >
+                  {isSubmittingComment ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    'Post'
+                  )}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="mb-4 p-4 bg-blips-card rounded-md text-center">
+              <p className="text-blips-text-secondary mb-2">Sign in to join the conversation</p>
+              <Link to="/login" className="btn-primary inline-block">Sign In</Link>
+            </div>
+          )}
+          
+          {/* Comments list */}
+          <div className="max-h-96 overflow-y-auto">
+            {comments.length > 0 ? (
+              comments.map(comment => (
+                <div key={comment._id} className="bg-blips-card p-4 rounded-md mb-2">
+                  <div className="flex items-center mb-2">
+                    <div className="w-8 h-8 rounded-full bg-blips-purple flex items-center justify-center text-white font-bold mr-2">
+                      {comment.user?.displayName?.[0] || comment.user?.username?.[0] || 'U'}
+                    </div>
+                    <div>
+                      <Link to={`/profile/${comment.user?.username}`} className="font-medium hover:text-blips-purple">
+                        {comment.user?.displayName || comment.user?.username || 'User'}
+                      </Link>
+                      <p className="text-xs text-blips-text-secondary">
+                        {new Date(comment.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p>{comment.text}</p>
+                  <div className="flex items-center mt-2 text-sm text-blips-text-secondary">
+                    <button className="flex items-center hover:text-blips-purple mr-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      {comment.likes || 0}
+                    </button>
+                    <button className="hover:text-blips-purple">Reply</button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-blips-text-secondary text-center">No comments yet. Be the first to comment!</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

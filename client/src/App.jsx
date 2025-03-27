@@ -20,6 +20,7 @@ const Register = lazy(() => import('./pages/Auth/Register'));
 const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Events = lazy(() => import('./pages/Events'));
 
 // Loading component
 const Loading = () => (
@@ -72,7 +73,8 @@ function AppContent() {
     <Route path="/shorts/:id" element={<Layout><ShortDetail /></Layout>} />
     <Route path="/films" element={<Layout><Films /></Layout>} />
     <Route path="/films/:id" element={<Layout><FilmDetail /></Layout>} />
-    
+    <Route path="/events" element={<Layout><Events /></Layout>} />
+
     {/* Authentication Routes */}
     <Route path="/login" element={
         isAuthenticated 
@@ -103,11 +105,17 @@ function AppContent() {
         <Layout><Upload /></Layout>
         </ProtectedRoute>
     } />
-    <Route path="/profile/*" element={
+    <Route path="/profile" element={
         <ProtectedRoute>
         <Layout><Profile /></Layout>
         </ProtectedRoute>
     } />
+
+    <Route path="/profile/:username" element={
+    <ProtectedRoute>
+    <Layout><Profile /></Layout>
+    </ProtectedRoute>
+} />
     
     {/* 404 Route */}
     <Route path="*" element={<Layout><NotFound /></Layout>} />

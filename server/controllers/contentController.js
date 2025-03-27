@@ -304,12 +304,11 @@ exports.uploadContent = async (req, res) => {
     // Handle thumbnails for different content types
     let thumbnailUrl = '';
     if (contentType === 'image') {
-      thumbnailUrl = fileUrl; // For images, use the same file as thumbnail
-    } else if (contentType === 'short' || contentType === 'film') {
-      // For videos, create a separate thumbnail file
-      // Generate a unique thumbnail filename
-      const thumbFilename = `thumb_${Date.now()}_${path.basename(fileUrl, path.extname(fileUrl))}.png`;
-      const thumbnailDir = path.join(path.dirname(req.file.path), '..', 'thumbnails');
+      thumbnailUrl = fileUrl; 
+    }else if (contentType === 'short' || contentType === 'film') {
+      // Create a thumbnails directory inside the appropriate content type folder
+      const contentTypeDir = contentType === 'short' ? 'shorts' : 'films';
+      const thumbnailDir = path.join(__dirname, '../uploads', contentTypeDir, 'thumbnails');
       
       // Create thumbnails directory if it doesn't exist
       try {
@@ -318,51 +317,97 @@ exports.uploadContent = async (req, res) => {
         console.error('Error creating thumbnails directory:', mkdirErr);
       }
       
+      // Generate a unique thumbnail filename
+      const thumbFilename = `thumb_${Date.now()}_${path.basename(req.file.originalname, path.extname(req.file.originalname))}.png`;
       const thumbnailPath = path.join(thumbnailDir, thumbFilename);
       
       try {
-        // Create a simple canvas with the video title as a placeholder thumbnail
-        const canvas = createCanvas(480, 320);
+        // Create a canvas with the video title as a placeholder thumbnail
+        const canvas = createCanvas(640, 360); // 16:9 aspect ratio
         const ctx = canvas.getContext('2d');
         
         // Draw a gradient background
-        const gradient = ctx.createLinearGradient(0, 0, 480, 320);
-        gradient.addColorStop(0, '#1A1A25');
-        gradient.addColorStop(1, '#6C63FF');
+        const gradient = ctx.createLinearGradient(0, 0, 640, 360);
+        gradient.addColorStop(0, '#242435'); // blips-card
+        gradient.addColorStop(1, '#6C63FF'); // blips-purple
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 480, 320);
+        ctx.fillRect(0, 0, 640, 360);
         
-        // Add video title
+        // Add content type indicator
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, 640, 60);
+        
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 24px Arial';
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(contentType === 'short' ? 'SHORT CLIP' : 'FILM', 30, 40);
+        
+        // Add video title (wrapped if too long)
+        ctx.font = 'bold 32px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(title, 240, 160);
+        
+        // Wrap title if needed
+        const maxLineWidth = 580;
+        const words = title.split(' ');
+        let line = '';
+        let lines = [];
+        
+        for (let i = 0; i < words.length; i++) {
+          const testLine = line + words[i] + ' ';
+          const metrics = ctx.measureText(testLine);
+          
+          if (metrics.width > maxLineWidth && i > 0) {
+            lines.push(line);
+            line = words[i] + ' ';
+          } else {
+            line = testLine;
+          }
+        }
+        lines.push(line);
+        
+        // Draw title (centered vertically based on number of lines)
+        const lineHeight = 40;
+        const totalHeight = lines.length * lineHeight;
+        let y = (360 - totalHeight) / 2 + 10;
+        
+        lines.forEach(line => {
+          ctx.fillText(line, 320, y);
+          y += lineHeight;
+        });
         
         // Add a play button icon
         ctx.beginPath();
-        ctx.arc(240, 120, 40, 0, Math.PI * 2);
+        ctx.arc(320, 240, 50, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.fill();
         
         ctx.beginPath();
-        ctx.moveTo(225, 100);
-        ctx.lineTo(265, 120);
-        ctx.lineTo(225, 140);
+        ctx.moveTo(300, 215);
+        ctx.lineTo(350, 240);
+        ctx.lineTo(300, 265);
         ctx.closePath();
         ctx.fillStyle = 'white';
         ctx.fill();
+        
+        // Add creator name at bottom
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 300, 640, 60);
+        
+        ctx.fillStyle = 'white';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Created by: ${req.user.username || 'User'}`, 610, 335);
         
         // Save the canvas as a PNG
         const buffer = canvas.toBuffer('image/png');
         await fs.writeFile(thumbnailPath, buffer);
         
         // Create a relative URL for the thumbnail
-        thumbnailUrl = thumbnailPath.split('uploads')[1];
-        if (thumbnailUrl.startsWith('/')) {
-          thumbnailUrl = thumbnailUrl.substring(1);
-        }
-        thumbnailUrl = 'uploads/' + thumbnailUrl;
-        thumbnailUrl = thumbnailUrl.replace(/\\/g, '/'); // Ensure forward slashes
+        let thumbUrl = path.relative(path.join(__dirname, '..'), thumbnailPath);
+        thumbUrl = thumbUrl.replace(/\\/g, '/'); // Ensure forward slashes
+        thumbnailUrl = thumbUrl;
+        
+        console.log('Generated thumbnail URL:', thumbnailUrl);
         
       } catch (thumbError) {
         console.error('Error creating thumbnail:', thumbError);
