@@ -148,7 +148,7 @@ exports.deleteComment = async (req, res) => {
     }
     
     // Delete comment
-    await comment.remove();
+    await Comment.deleteOne({ _id: req.params.id });
     
     // If it's a top-level comment, also delete replies
     if (!comment.parentComment) {

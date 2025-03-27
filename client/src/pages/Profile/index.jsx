@@ -367,17 +367,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Debug information - remove in production */}
-      {isAuthenticated && (
-        <div className="bg-blips-dark p-2 mb-4 text-sm">
-          <p>Debug info:</p>
-          <p>Logged in as: {currentUser?.username}</p>
-          <p>Viewing profile: {username}</p>
-          <p>Is own profile: {isOwnProfile ? 'Yes' : 'No'}</p>
-        </div>
-      )}
-      
+    <div className="container mx-auto px-4 py-8">    
       {/* Profile Header */}
       <div className="mb-10">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
