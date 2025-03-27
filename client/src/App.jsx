@@ -1,5 +1,5 @@
 // client/src/App.jsx
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/layout/Layout';
@@ -56,70 +56,85 @@ function App() {
 // Separate component to use useAuth hook inside Router
 function AppContent() {
   const { isAuthenticated } = useAuth();
+  const [hasSeenWelcome, setHasSeenWelcome] = useState(false);
+  
+  // Check if user has seen welcome screen in this session
+  useEffect(() => {
+    const welcomeSeen = sessionStorage.getItem('welcomeSeen');
+    if (welcomeSeen) {
+      setHasSeenWelcome(true);
+    }
+  }, []);
+  
+  // When redirecting to welcome, mark it as seen
+  const markWelcomeSeen = () => {
+    sessionStorage.setItem('welcomeSeen', 'true');
+    setHasSeenWelcome(true);
+  };
   
   return (
     <Suspense fallback={<Loading />}>
-    <Routes>
-    {/* Public Routes */}
-    <Route path="/" element={
-        isAuthenticated 
-        ? <Navigate to="/welcome" /> 
-        : <Layout><Home /></Layout>
-    } />
-    <Route path="/explore" element={<Layout><Explore /></Layout>} />
-    <Route path="/images" element={<Layout><Images /></Layout>} />
-    <Route path="/images/:id" element={<Layout><ImageDetail /></Layout>} />
-    <Route path="/shorts" element={<Layout><Shorts /></Layout>} />
-    <Route path="/shorts/:id" element={<Layout><ShortDetail /></Layout>} />
-    <Route path="/films" element={<Layout><Films /></Layout>} />
-    <Route path="/films/:id" element={<Layout><FilmDetail /></Layout>} />
-    <Route path="/events" element={<Layout><Events /></Layout>} />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={
+            isAuthenticated 
+            ? (hasSeenWelcome ? <Layout><Dashboard /></Layout> : <Navigate to="/welcome" />)
+            : <Layout><Home /></Layout>
+        } />
+        <Route path="/explore" element={<Layout><Explore /></Layout>} />
+        <Route path="/images" element={<Layout><Images /></Layout>} />
+        <Route path="/images/:id" element={<Layout><ImageDetail /></Layout>} />
+        <Route path="/shorts" element={<Layout><Shorts /></Layout>} />
+        <Route path="/shorts/:id" element={<Layout><ShortDetail /></Layout>} />
+        <Route path="/films" element={<Layout><Films /></Layout>} />
+        <Route path="/films/:id" element={<Layout><FilmDetail /></Layout>} />
+        <Route path="/events" element={<Layout><Events /></Layout>} />
 
-    {/* Authentication Routes */}
-    <Route path="/login" element={
-        isAuthenticated 
-        ? <Navigate to="/welcome" /> 
-        : <Layout withFooter={false}><Login /></Layout>
-    } />
-    <Route path="/register" element={
-        isAuthenticated 
-        ? <Navigate to="/welcome" /> 
-        : <Layout withFooter={false}><Register /></Layout>
-    } />
-    
-    {/* Welcome Animation Route */}
-    <Route path="/welcome" element={
-        isAuthenticated 
-        ? <WelcomeAnimation />
-        : <Navigate to="/login" />
-    } />
-    
-    {/* Protected Routes */}
-    <Route path="/dashboard" element={
-        <ProtectedRoute>
-        <Layout><Dashboard /></Layout>
-        </ProtectedRoute>
-    } />
-    <Route path="/upload" element={
-        <ProtectedRoute>
-        <Layout><Upload /></Layout>
-        </ProtectedRoute>
-    } />
-    <Route path="/profile" element={
-        <ProtectedRoute>
-        <Layout><Profile /></Layout>
-        </ProtectedRoute>
-    } />
+        {/* Authentication Routes */}
+        <Route path="/login" element={
+            isAuthenticated 
+            ? <Navigate to="/dashboard" /> 
+            : <Layout withFooter={false}><Login /></Layout>
+        } />
+        <Route path="/register" element={
+            isAuthenticated 
+            ? <Navigate to="/welcome" /> 
+            : <Layout withFooter={false}><Register /></Layout>
+        } />
+        
+        {/* Welcome Animation Route */}
+        <Route path="/welcome" element={
+            isAuthenticated 
+            ? <WelcomeAnimation onFinish={markWelcomeSeen} />
+            : <Navigate to="/login" />
+        } />
+        
+        {/* Protected Routes */}
+        <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Layout><Dashboard /></Layout>
+            </ProtectedRoute>
+        } />
+        <Route path="/upload" element={
+            <ProtectedRoute>
+              <Layout><Upload /></Layout>
+            </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+            <ProtectedRoute>
+              <Layout><Profile /></Layout>
+            </ProtectedRoute>
+        } />
 
-    <Route path="/profile/:username" element={
-    <ProtectedRoute>
-    <Layout><Profile /></Layout>
-    </ProtectedRoute>
-} />
-    
-    {/* 404 Route */}
-    <Route path="*" element={<Layout><NotFound /></Layout>} />
-    </Routes>
+        <Route path="/profile/:username" element={
+          <ProtectedRoute>
+            <Layout><Profile /></Layout>
+          </ProtectedRoute>
+        } />
+        
+        {/* 404 Route */}
+        <Route path="*" element={<Layout><NotFound /></Layout>} />
+      </Routes>
     </Suspense>
   );
 }

@@ -30,30 +30,31 @@ const Header = ({ isAuthenticated }) => {
         </Link>
         
         {/* Main Navigation */}
-        <nav className="hidden md:flex space-x-6">
-          <NavLink to="/" 
-            className={({ isActive }) => 
-              isActive ? "nav-link-active" : "nav-link"
-            }
-            end
-          >
-            Home
-          </NavLink>
-          <NavLink to="/explore" 
-            className={({ isActive }) => 
-              isActive ? "nav-link-active" : "nav-link"
-            }
-          >
-            Explore
-          </NavLink>
-          <NavLink to="/events" 
-            className={({ isActive }) => 
-              isActive ? "nav-link-active" : "nav-link"
-            }
-          >
-            Events
-          </NavLink>
-        </nav>
+      <nav className="hidden md:flex space-x-6">
+        <NavLink 
+          to={isAuthenticated ? "/dashboard" : "/"} 
+          className={({ isActive }) => 
+            isActive ? "nav-link-active" : "nav-link"
+          }
+          end
+        >
+          Home
+        </NavLink>
+        <NavLink to="/explore" 
+          className={({ isActive }) => 
+            isActive ? "nav-link-active" : "nav-link"
+          }
+        >
+          Explore
+        </NavLink>
+        <NavLink to="/events" 
+          className={({ isActive }) => 
+            isActive ? "nav-link-active" : "nav-link"
+          }
+        >
+          Events
+        </NavLink>
+      </nav>
       </div>
       
       {/* Search Bar - Only show on content pages */}

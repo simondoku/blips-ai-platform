@@ -4,17 +4,20 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../common/Logo';
 
-const WelcomeAnimation = () => {
+const WelcomeAnimation = ({ onFinish }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
     // Redirect to dashboard after animation completes
     const timer = setTimeout(() => {
+      if (onFinish) {
+        onFinish(); // Mark welcome as seen
+      }
       navigate('/dashboard');
     }, 2200); // Animation duration + small delay
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, onFinish]);
 
   return (
     <div className="fixed inset-0 bg-blips-black flex flex-col items-center justify-center z-50">
