@@ -6,8 +6,8 @@ export const uploadService = {
     // Extract content type from formData to use in URL query parameter
     const contentType = formData.get('contentType');
     
-    // Remove contentType from formData since we'll pass it as query parameter
-    formData.delete('contentType');
+    // We'll keep contentType in formData as well as pass it in the URL
+    // This ensures it's available in both req.body and req.query
     
     const response = await api.post(`/content/upload?contentType=${contentType}`, formData, {
       headers: {

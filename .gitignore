@@ -33,3 +33,10 @@ yarn-error.log*
 
 # OS
 .DS_Store
+
+# User uploaded content
+/server/uploads/
+/server/uploads/images/
+/server/uploads/shorts/
+/server/uploads/films/
+/server/uploads/thumbnails/

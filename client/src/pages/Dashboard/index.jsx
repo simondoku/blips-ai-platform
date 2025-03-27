@@ -10,32 +10,35 @@ const Dashboard = () => {
   const [followingContent, setFollowingContent] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      setIsLoading(true);
-      try {
-        // In a real app, these would be separate API calls
-        const trending = await contentService.exploreContent({ sort: 'trending', limit: 8 });
-        const forYou = await contentService.exploreContent({ sort: 'recommended', limit: 8 });
-        const following = await contentService.exploreContent({ following: true, limit: 8 });
-        
-        setTrendingContent(trending.content || []);
-        setForYouContent(forYou.content || []);
-        setFollowingContent(following.content || []);
-      } catch (error) {
-        console.error('Error fetching dashboard content:', error);
-        // Use mock data if API fails for now
-        setTrendingContent(generateMockContent(8));
-        setForYouContent(generateMockContent(8));
-        setFollowingContent(generateMockContent(4));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchContent();
-  }, []);
+// Update the fetchContent function in your useEffect:
 
+useEffect(() => {
+  const fetchContent = async () => {
+    setIsLoading(true);
+    try {
+      // In a real app, these would be separate API calls
+      const trending = await contentService.exploreContent({ sort: 'trending', limit: 8 });
+      const forYou = await contentService.exploreContent({ sort: 'recommended', limit: 8 });
+      const following = await contentService.exploreContent({ following: 'true', limit: 8 });
+      
+      console.log('Trending data:', trending);
+      
+      setTrendingContent(trending?.content || []);
+      setForYouContent(forYou?.content || []);
+      setFollowingContent(following?.content || []);
+    } catch (err) {
+      console.error('Error fetching dashboard content:', err);
+      // Set default values on error
+      setTrendingContent([]);
+      setForYouContent([]);
+      setFollowingContent([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  fetchContent();
+}, []);
   // Mock data generator for development
   const generateMockContent = (count) => {
     return Array.from({ length: count }).map((_, index) => ({

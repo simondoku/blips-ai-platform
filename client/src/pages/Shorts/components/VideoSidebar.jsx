@@ -1,16 +1,27 @@
 // client/src/pages/Shorts/components/VideoSidebar.jsx
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { contentService } from '../../../services/contentService';
 
 const VideoSidebar = ({ video }) => {
   const [isLiked, setIsLiked] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(video.creator.isFollowing);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [likeCount, setLikeCount] = useState(video.stats?.likes || 0);
+  const [saveCount, setSaveCount] = useState(video.stats?.saves || 0);
   
-  // Updated stats based on user interactions
-  const likeCount = isLiked ? video.stats.likes + 1 : video.stats.likes;
-  const saveCount = isSaved ? video.stats.saves + 1 : video.stats.saves;
+  // Check initial states
+  useEffect(() => {
+    if (video) {
+      setIsLiked(video.likedBy?.includes(video.currentUser) || false);
+      setIsFollowing(video.creator?.isFollowing || false);
+      setIsSaved(video.savedBy?.includes(video.currentUser) || false);
+      setLikeCount(video.stats?.likes || 0);
+      setSaveCount(video.stats?.saves || 0);
+    }
+  }, [video]);
   
   // Format numbers for display (e.g. 1.2K instead of 1200)
   const formatNumber = (num) => {
@@ -20,6 +31,40 @@ const VideoSidebar = ({ video }) => {
       return (num / 1000).toFixed(1) + 'K';
     } else {
       return num.toString();
+    }
+  };
+  
+  // Handle like/unlike
+  const handleLikeToggle = async (e) => {
+    e.stopPropagation();
+    try {
+      if (isLiked) {
+        const response = await contentService.unlikeContent(video._id || video.id);
+        setLikeCount(response.likes || likeCount - 1);
+      } else {
+        const response = await contentService.likeContent(video._id || video.id);
+        setLikeCount(response.likes || likeCount + 1);
+      }
+      setIsLiked(!isLiked);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  };
+  
+  // Handle save/unsave
+  const handleSaveToggle = async (e) => {
+    e.stopPropagation();
+    try {
+      if (isSaved) {
+        const response = await contentService.unsaveContent(video._id || video.id);
+        setSaveCount(response.saves || saveCount - 1);
+      } else {
+        const response = await contentService.saveContent(video._id || video.id);
+        setSaveCount(response.saves || saveCount + 1);
+      }
+      setIsSaved(!isSaved);
+    } catch (error) {
+      console.error('Error toggling save:', error);
     }
   };
   
@@ -33,11 +78,11 @@ const VideoSidebar = ({ video }) => {
       {/* Creator Avatar */}
       <div className="mb-8 relative">
         <Link
-          to={`/profile/${video.creator.username}`} 
+          to={`/profile/${video.creator?.username}`} 
           className="w-12 h-12 rounded-full bg-blips-purple flex items-center justify-center text-white text-xl font-bold"
           onClick={handleButtonClick}
         >
-          {video.creator.displayName.charAt(0)}
+          {video.creator?.displayName?.charAt(0) || 'U'}
         </Link>
         
         {/* Follow button */}
@@ -49,6 +94,7 @@ const VideoSidebar = ({ video }) => {
           onClick={(e) => {
             handleButtonClick(e);
             setIsFollowing(!isFollowing);
+            // TODO: Implement actual follow/unfollow API call
           }}
         >
           {isFollowing ? (
@@ -70,10 +116,7 @@ const VideoSidebar = ({ video }) => {
             isLiked ? 'bg-red-500 bg-opacity-20' : 'bg-blips-dark'
           }`}
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => {
-            handleButtonClick(e);
-            setIsLiked(!isLiked);
-          }}
+          onClick={handleLikeToggle}
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
@@ -102,7 +145,7 @@ const VideoSidebar = ({ video }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </motion.button>
-        <span className="text-xs text-white mt-1">{formatNumber(video.stats.comments)}</span>
+        <span className="text-xs text-white mt-1">{formatNumber(video.stats?.comments || 0)}</span>
       </div>
       
       {/* Share Button */}
@@ -116,7 +159,7 @@ const VideoSidebar = ({ video }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
           </svg>
         </motion.button>
-        <span className="text-xs text-white mt-1">{formatNumber(video.stats.shares)}</span>
+        <span className="text-xs text-white mt-1">{formatNumber(video.stats?.shares || 0)}</span>
       </div>
       
       {/* Save Button */}
@@ -126,10 +169,7 @@ const VideoSidebar = ({ video }) => {
             isSaved ? 'bg-blips-purple bg-opacity-20' : 'bg-blips-dark'
           }`}
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => {
-            handleButtonClick(e);
-            setIsSaved(!isSaved);
-          }}
+          onClick={handleSaveToggle}
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 

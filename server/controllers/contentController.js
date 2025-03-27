@@ -195,11 +195,24 @@ exports.exploreContent = async (req, res) => {
   }
 };
 
-// server/controllers/contentController.js
+// Fix the getContentById method in contentController.js:
+
 exports.getContentById = async (req, res) => {
   try {
+    const contentId = req.params.id;
+    
+    // Check if the ID is a valid MongoDB ObjectId
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(contentId);
+    
+    if (!isValidObjectId) {
+      return res.status(400).json({ 
+        message: 'Invalid content ID format', 
+        error: 'ID must be a valid MongoDB ObjectId'
+      });
+    }
+    
     // Find content without updating it first
-    const content = await Content.findById(req.params.id)
+    const content = await Content.findById(contentId)
       .populate('creator', 'username displayName profileImage bio');
     
     if (!content) {
@@ -208,7 +221,7 @@ exports.getContentById = async (req, res) => {
     
     // Increment view count using findByIdAndUpdate instead of modifying and saving
     await Content.findByIdAndUpdate(
-      req.params.id,
+      contentId,
       { $inc: { 'stats.views': 1 } },
       { new: true }
     );
@@ -219,7 +232,7 @@ exports.getContentById = async (req, res) => {
       contentType: content.contentType,
       $or: [
         { category: content.category },
-        { tags: { $in: content.tags } }
+        { tags: { $in: content.tags || [] } } // Add null check for tags
       ],
       isPublic: true
     })
@@ -247,7 +260,7 @@ exports.getContentById = async (req, res) => {
     console.error('Error in getContentById:', error);
     res.status(500).json({ 
       message: 'Server error', 
-      error: error.message 
+      error: error.message || 'An unknown error occurred'
     });
   }
 };

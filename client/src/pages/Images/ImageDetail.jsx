@@ -92,17 +92,28 @@ const ImageDetail = () => {
           
           {/* Image Display */}
           <div className="bg-blips-dark rounded-lg overflow-hidden">
-            {image.fileUrl ? (
-              <img 
-                src={image.fileUrl.startsWith('/uploads') ? `http://localhost:5001${image.fileUrl}` : image.fileUrl}
-                alt={image.title} 
-                className="w-full object-contain max-h-[70vh]"
-              />
-            ) : (
-              <div className="aspect-square md:aspect-[4/3] bg-gradient-to-br from-indigo-900/20 via-blips-card to-purple-900/20 flex items-center justify-center">
-                <span className="text-4xl text-white opacity-30">Image Not Available</span>
-              </div>
-            )}
+          {image.fileUrl ? (
+            <img 
+              src={image.fileUrl.startsWith('/uploads') 
+                ? `http://localhost:5001${image.fileUrl}` 
+                : image.fileUrl.startsWith('uploads/') 
+                  ? `http://localhost:5001/${image.fileUrl}` 
+                  : image.fileUrl}
+              alt={image.title} 
+              className="w-full object-contain max-h-[70vh]"
+              onError={(e) => {
+                console.error('Image failed to load:', image.fileUrl);
+                e.target.onerror = null;
+                e.target.src = ''; // Reset src to prevent infinite retries
+                e.target.classList.add('hidden');
+                e.target.parentElement.innerHTML += `<div class="aspect-square md:aspect-[4/3] bg-gradient-to-br from-indigo-900/20 via-blips-card to-purple-900/20 flex items-center justify-center"><span class="text-4xl text-white opacity-30">Image Load Error</span></div>`;
+              }}
+            />
+          ) : (
+            <div className="aspect-square md:aspect-[4/3] bg-gradient-to-br from-indigo-900/20 via-blips-card to-purple-900/20 flex items-center justify-center">
+              <span className="text-4xl text-white opacity-30">Image Not Available</span>
+            </div>
+          )}
           </div>
           
           {/* Rest of the component remains similar, just use real data */}

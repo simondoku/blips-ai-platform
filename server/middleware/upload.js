@@ -5,7 +5,12 @@ const fs = require('fs');
 
 // Create upload directories if they don't exist
 const createUploadDirs = () => {
-  const dirs = ['images', 'shorts', 'films'].map(dir => 
+  const dirs = [
+    'images', 
+    'shorts', 
+    'films', 
+    'thumbnails'
+  ].map(dir => 
     path.join(__dirname, '../uploads', dir)
   );
   

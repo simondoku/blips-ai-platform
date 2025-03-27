@@ -98,6 +98,26 @@ exploreContent: async (params = {}) => {
   unsaveContent: async (id) => {
     const response = await api.post(`/content/${id}/unsave`);
     return response.data;
+  },
+  
+  generateThumbnailUrl: (contentItem) => {
+    if (!contentItem) return null;
+    
+    // Ensure the URL is properly formatted
+    if (contentItem.thumbnailUrl) {
+      return contentItem.thumbnailUrl.startsWith('http') 
+        ? contentItem.thumbnailUrl 
+        : `http://localhost:5001/${contentItem.thumbnailUrl}`;
+    } else if (contentItem.fileUrl && contentItem.contentType === 'image') {
+      // For images, use the image itself as the thumbnail
+      return contentItem.fileUrl.startsWith('http')
+        ? contentItem.fileUrl
+        : `http://localhost:5001/${contentItem.fileUrl}`;
+    }
+    
+    // Return a placeholder for videos without thumbnails
+    return '/placeholder-thumbnail.jpg';
   }
+
 };
 export default contentService;
