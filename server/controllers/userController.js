@@ -82,7 +82,7 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Get User Content
+//getUserContent 
 exports.getUserContent = async (req, res) => {
   try {
     const { username, contentType, limit = 30, page = 1 } = req.query;
@@ -90,51 +90,108 @@ exports.getUserContent = async (req, res) => {
     
     // Find user by username or use the current user
     let user;
+    
     if (username) {
+      // Log to debug
+      console.log(`Looking for user with username: ${username}`);
+      
       user = await User.findOne({ username });
+      
+      if (!user) {
+        console.log(`No user found with username: ${username}`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+    } else if (req.user && req.user.id) {
+      // Use authenticated user if no username provided
+      user = await User.findById(req.user.id);
+      
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-    // server/controllers/userController.js (continued)
-} else {
-    user = await User.findById(req.user.id);
-  }
-  
-  // Create query
-  const query = { creator: user._id };
-  
-  // Filter by content type if specified
-  if (contentType && contentType !== 'all') {
-    query.contentType = contentType;
-  }
-  
-  // If viewing someone else's profile, only show public content
-  if (username && user._id.toString() !== req.user.id) {
-    query.isPublic = true;
-  }
-  
-  const content = await Content.find(query)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(parseInt(limit))
-    .populate('creator', 'username displayName profileImage');
-  
-  const total = await Content.countDocuments(query);
-  
-  res.json({
-    content,
-    pagination: {
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / limit)
+    } else {
+      return res.status(400).json({ message: 'Username parameter is required' });
     }
-  });
-} catch (error) {
-  res.status(500).json({ 
-    message: 'Server error', 
-    error: error.message 
-  });
-}
+    
+    console.log(`Found user: ${user.username}, ID: ${user._id}`);
+    
+    // Create query
+    const query = { creator: user._id };
+    
+    // Filter by content type if specified
+    if (contentType && contentType !== 'all') {
+      query.contentType = contentType;
+    }
+    
+    // If viewing someone else's profile, only show public content
+    if (username && req.user && user._id.toString() !== req.user.id) {
+      query.isPublic = true;
+    }
+    
+    console.log(`Content query:`, query);
+    
+    const content = await Content.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('creator', 'username displayName profileImage');
+    
+    console.log(`Found ${content.length} content items`);
+    
+    const total = await Content.countDocuments(query);
+    
+    res.json({
+      content,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error in getUserContent:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+
+// Add a new method to get Liked content
+exports.getLikedContent = async (req, res) => {
+  try {
+    const { contentType, limit = 30, page = 1 } = req.query;
+    const skip = (page - 1) * limit;
+    
+    // Create query to find content liked by the user
+    const query = { likedBy: req.user.id };
+    
+    // Filter by content type if specified
+    if (contentType && contentType !== 'all') {
+      query.contentType = contentType;
+    }
+    
+    const content = await Content.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('creator', 'username displayName profileImage');
+    
+    const total = await Content.countDocuments(query);
+    
+    res.json({
+      content,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
 };
 
 // Follow User

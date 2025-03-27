@@ -1,4 +1,4 @@
-// client/src/services/contentService.js - Updated with real API endpoints
+// client/src/services/contentService.js
 import api from './api';
 
 export const contentService = {
@@ -119,6 +119,43 @@ export const contentService = {
     }
   },
   
+  // Share content
+  shareContent: async (id, platform = 'copy') => {
+    try {
+      // Record the share in the backend
+      const response = await api.post(`/content/${id}/share`, { platform });
+      
+      // Return the data for further processing
+      return response.data;
+    } catch (error) {
+      console.error('Error sharing content:', error);
+      throw error;
+    }
+  },
+  
+  // Download content
+  downloadContent: async (id, filename) => {
+    try {
+      const response = await api.get(`/content/${id}/download`, {
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      return true;
+    } catch (error) {
+      console.error('Error downloading content:', error);
+      throw error;
+    }
+  },
+  
   // Upload content with progress tracking
   uploadContent: async (formData, onProgress) => {
     try {
@@ -140,6 +177,16 @@ export const contentService = {
       return response.data;
     } catch (error) {
       console.error('Error uploading content:', error);
+      throw error;
+    }
+  },
+
+  deleteContent: async (id) => {
+    try {
+      const response = await api.delete(`/content/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting content:', error);
       throw error;
     }
   }

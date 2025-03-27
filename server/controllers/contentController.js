@@ -112,10 +112,20 @@ exports.getFilms = async (req, res) => {
   }
 };
 
-// Explore Content
+
 exports.exploreContent = async (req, res) => {
   try {
-    const { sort = 'trending', category, tag, limit = 20, page = 1, following } = req.query;
+    const { 
+      sort = 'trending', 
+      category, 
+      tag, 
+      contentType, 
+      creator,
+      limit = 20, 
+      page = 1, 
+      following 
+    } = req.query;
+    
     const skip = (page - 1) * limit;
     
     let query = { isPublic: true };
@@ -125,22 +135,45 @@ exports.exploreContent = async (req, res) => {
       query.category = category;
     }
     
+    // Apply content type filter if provided
+    if (contentType && contentType !== 'all') {
+      query.contentType = contentType;
+    }
+    
     // Apply tag filter if provided
     if (tag) {
       query.tags = { $in: [tag] };
     }
     
+    // Filter by creator username if provided
+    if (creator) {
+      // First find the user by username
+      const User = require('../models/User');
+      const creatorUser = await User.findOne({ username: creator });
+      
+      if (creatorUser) {
+        query.creator = creatorUser._id;
+      } else {
+        // If user not found, return empty results
+        return res.json({
+          content: [],
+          pagination: { total: 0, page: parseInt(page), pages: 0 }
+        });
+      }
+    }
+    
     // If following is true and user is authenticated, filter by followed creators
     if (following === 'true' && req.user) {
-      // This assumes you have a User model with a 'following' array
-      // You'll need to adapt this to your actual data model
       const User = require('../models/User');
       const currentUser = await User.findById(req.user.id);
       if (currentUser && currentUser.following && currentUser.following.length > 0) {
         query.creator = { $in: currentUser.following };
       } else {
         // If user isn't following anyone, return empty array
-        return res.json({ content: [] });
+        return res.json({ 
+          content: [],
+          pagination: { total: 0, page: parseInt(page), pages: 0 }
+        });
       }
     }
     
@@ -194,7 +227,6 @@ exports.exploreContent = async (req, res) => {
     });
   }
 };
-
 // Fix the getContentById method in contentController.js:
 
 exports.getContentById = async (req, res) => {
@@ -525,10 +557,29 @@ exports.deleteContent = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this content' });
     }
     
-    await content.remove();
+    await Content.deleteOne({ _id: req.params.id });
     
     // In a real app, you'd also remove the file from S3/cloud storage
+    if (content.fileUrl) {
+      try {
+        const filePath = path.join(__dirname, '..', content.fileUrl);
+        await fs.unlink(filePath);
+      } catch (fileError) {
+        console.error('Error deleting file:', fileError);
+        // Continue even if file deletion fails
+      }
+    }
     
+    // Optional: Delete thumbnail if it exists
+    if (content.thumbnailUrl && content.thumbnailUrl !== content.fileUrl) {
+      try {
+        const thumbnailPath = path.join(__dirname, '..', content.thumbnailUrl);
+        await fs.unlink(thumbnailPath);
+      } catch (thumbError) {
+        console.error('Error deleting thumbnail:', thumbError);
+        // Continue even if thumbnail deletion fails
+      }
+    }
     res.json({ message: 'Content deleted successfully' });
   } catch (error) {
     res.status(500).json({ 
@@ -654,6 +705,70 @@ exports.unsaveContent = async (req, res) => {
       message: 'Content unsaved successfully',
       saves: content.stats.saves
     });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+
+// Share Content
+exports.shareContent = async (req, res) => {
+  try {
+    const { platform } = req.body;
+    const content = await Content.findById(req.params.id);
+    
+    if (!content) {
+      return res.status(404).json({ message: 'Content not found' });
+    }
+    
+    // Increment share count
+    content.stats.shares += 1;
+    await content.save();
+    
+    res.json({
+      message: 'Content shared successfully',
+      shares: content.stats.shares
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+
+// Download Content
+exports.downloadContent = async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.id);
+    
+    if (!content) {
+      return res.status(404).json({ message: 'Content not found' });
+    }
+    
+    // Get the file path
+    const filePath = path.join(__dirname, '..', content.fileUrl);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch (err) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+    
+    // Set appropriate headers for download
+    const filename = path.basename(filePath);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Stream the file to the client
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+    // Increment download count (optional)
+    content.stats.downloads = (content.stats.downloads || 0) + 1;
+    await content.save();
   } catch (error) {
     res.status(500).json({ 
       message: 'Server error', 

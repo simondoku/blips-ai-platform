@@ -11,6 +11,7 @@ router.get('/shorts', contentController.getShorts);
 router.get('/films', contentController.getFilms);
 router.get('/explore', contentController.exploreContent);
 router.get('/:id', contentController.getContentById);
+router.get('/:id/download', contentController.downloadContent);
 
 // Protected routes
 router.use(authenticateToken);
@@ -21,5 +22,6 @@ router.post('/:id/like', contentController.likeContent);
 router.post('/:id/unlike', contentController.unlikeContent);
 router.post('/:id/save', contentController.saveContent);
 router.post('/:id/unsave', contentController.unsaveContent);
+router.post('/:id/share', contentController.shareContent);
 
 module.exports = router;

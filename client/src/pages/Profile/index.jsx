@@ -3,10 +3,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, Routes, Route } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { userService } from '../../services/userService';
+import contentService from '../../services/contentService';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-// Profile Settings Component (used in the Routes)
+// Profile Settings Component
 const ProfileSettings = () => {
   const { currentUser, updateProfile } = useAuth();
   const [formData, setFormData] = useState({
@@ -126,10 +127,13 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const { username } = useParams();
   const navigate = useNavigate();
   const { currentUser, isAuthenticated } = useAuth();
-  const isOwnProfile = currentUser?.username === username;
+  const profileUsername = username || currentUser?.username;
+  const isOwnProfile = currentUser?.username === profileUsername || !username;
   
   // Fetch user data
   useEffect(() => {
@@ -150,47 +154,65 @@ const Profile = () => {
         setUser(userData);
         setIsFollowing(userData.isFollowing || false);
         
-        // Fetch user content
-        const contentParams = { username: profileUsername };
-        if (activeTab !== 'all') {
-          contentParams.contentType = activeTab;
-        }
+        // Reset content state when user changes
+        setContent([]);
+        setFilteredContent([]);
         
-        const contentData = await userService.getUserContent(contentParams);
-        setContent(contentData.content || []);
-        setFilteredContent(contentData.content || []);
+        // Fetch user content
+        await fetchUserContent(profileUsername, activeTab);
       } catch (error) {
         console.error('Error fetching profile data:', error);
         setError(error.response?.data?.message || 'Failed to load profile. Please try again later.');
-      } finally {
         setIsLoading(false);
       }
     };
     
     fetchUserData();
-  }, [username, currentUser, navigate, activeTab]);
+  }, [username, currentUser, navigate]);
   
-  // Filter content when tab changes
-  useEffect(() => {
-    if (activeTab === 'all') {
-      setFilteredContent(content);
-    } else if (activeTab === 'liked' && isOwnProfile) {
-      // For 'liked' tab, we need to fetch liked content
-      const fetchLikedContent = async () => {
-        try {
-          const likedContent = await userService.getSavedContent();
-          setFilteredContent(likedContent.content || []);
-        } catch (error) {
-          console.error('Error fetching liked content:', error);
-          setFilteredContent([]);
-        }
-      };
+  // Fetch user content based on tab
+  const fetchUserContent = async (profileUsername, contentType = 'all') => {
+    try {
+      setIsLoading(true);
       
-      fetchLikedContent();
-    } else {
-      setFilteredContent(content.filter(item => item.contentType === activeTab));
+      // Create query params
+      const params = { creator: profileUsername };
+      
+      // Add content type filter if not 'all'
+      if (contentType !== 'all' && contentType !== 'liked') {
+        params.contentType = contentType;
+      }
+      
+      let response;
+      
+      // For 'liked' tab, use a different endpoint
+      if (contentType === 'liked' && isOwnProfile) {
+        response = await userService.getSavedContent();
+      } else {
+        // Use the explore endpoint to get content filtered by creator
+        response = await userService.getUserContent(params);
+      }
+      
+      const userContent = response.content || [];
+      
+      console.log('Fetched user content:', userContent);
+      
+      setContent(userContent);
+      setFilteredContent(userContent);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching user content:', error);
+      setContent([]);
+      setFilteredContent([]);
+      setIsLoading(false);
     }
-  }, [activeTab, content, isOwnProfile]);
+  };
+  
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    fetchUserContent(username || currentUser?.username, tab);
+  };
   
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
@@ -215,6 +237,62 @@ const Profile = () => {
     } catch (error) {
       console.error(`Error ${isFollowing ? 'unfollowing' : 'following'} user:`, error);
       setIsFollowing(!isFollowing); // Revert UI state on error
+    }
+  };
+  
+  // Handle delete content
+  const handleDeleteContent = async (contentId) => {
+    if (!isAuthenticated || !isOwnProfile) return;
+    
+    // Confirm deletion
+    if (!window.confirm('Are you sure you want to delete this content? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      
+      // Mark this specific item as deleting
+      setFilteredContent(prevContent => 
+        prevContent.map(item => 
+          (item._id === contentId || item.id === contentId) ? { ...item, isDeleting: true } : item
+        )
+      );
+      
+      // Call API to delete content
+      await contentService.deleteContent(contentId);
+      
+      // Remove deleted content from state
+      setContent(prevContent => prevContent.filter(item => 
+        (item._id !== contentId && item.id !== contentId)
+      ));
+      setFilteredContent(prevContent => prevContent.filter(item => 
+        (item._id !== contentId && item.id !== contentId)
+      ));
+      
+      // Update content count in user data
+      if (user && user.contentCount) {
+        setUser(prevUser => ({
+          ...prevUser,
+          contentCount: Math.max(0, prevUser.contentCount - 1)
+        }));
+      }
+      
+      // Show success message
+      alert('Content deleted successfully');
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      
+      // Revert the deleting state on error
+      setFilteredContent(prevContent => 
+        prevContent.map(item => 
+          (item._id === contentId || item.id === contentId) ? { ...item, isDeleting: false } : item
+        )
+      );
+      
+      alert('Failed to delete content. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
   
@@ -270,7 +348,7 @@ const Profile = () => {
     return `http://localhost:5001/${profileImage}`;
   };
   
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <div className="flex justify-center items-center h-screen">
         <LoadingSpinner size="lg" />
@@ -287,9 +365,19 @@ const Profile = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Debug information - remove in production */}
+      {isAuthenticated && (
+        <div className="bg-blips-dark p-2 mb-4 text-sm">
+          <p>Debug info:</p>
+          <p>Logged in as: {currentUser?.username}</p>
+          <p>Viewing profile: {username}</p>
+          <p>Is own profile: {isOwnProfile ? 'Yes' : 'No'}</p>
+        </div>
+      )}
+      
       {/* Profile Header */}
       <div className="mb-10">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -375,7 +463,7 @@ const Profile = () => {
                         ? 'border-blips-purple text-blips-purple' 
                         : 'border-transparent text-blips-text-secondary hover:text-white'
                     }`}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                   >
                     {tab.label}
                   </button>
@@ -384,7 +472,11 @@ const Profile = () => {
             </div>
             
             {/* Content Grid */}
-            {filteredContent.length > 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : filteredContent.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filteredContent.map((item) => {
                   // Determine content type
@@ -404,9 +496,60 @@ const Profile = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="card card-hover overflow-hidden"
+                      className={`card overflow-hidden relative ${item.isDeleting ? 'opacity-50' : ''}`}
                     >
-                      <Link to={urlPath}>
+                      {/* Dropdown menu button */}
+                      {isOwnProfile && (
+                        <div className="absolute top-2 right-2 z-10">
+                          <button
+                            className="w-10 h-10 rounded-full bg-black/50 hover:bg-red-500 flex items-center justify-center"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === (item._id || item.id) ? null : (item._id || item.id));
+                            }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                          
+                          {/* Dropdown menu */}
+                          {openMenuId === (item._id || item.id) && (
+                            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-blips-dark ring-1 ring-black ring-opacity-5 z-20">
+                              <div className="py-1" role="menu" aria-orientation="vertical">
+                                <button
+                                  className="flex items-center w-full px-4 py-2 text-sm text-white hover:bg-blips-card"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleDeleteContent(item._id || item.id);
+                                    setOpenMenuId(null);
+                                  }}
+                                  disabled={isDeleting || item.isDeleting}
+                                >
+                                  {item.isDeleting ? (
+                                    <>
+                                      <LoadingSpinner size="sm" className="mr-2" />
+                                      <span>Deleting...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      <span>Delete</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Content card link */}
+                      <Link to={urlPath} className="block">
                         {/* Content Thumbnail */}
                         <div className="relative aspect-video bg-blips-card">
                           {imageUrl ? (

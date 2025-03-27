@@ -15,5 +15,6 @@ router.get('/content', userController.getUserContent);
 router.post('/follow/:userId', userController.followUser);
 router.post('/unfollow/:userId', userController.unfollowUser);
 router.get('/saved', userController.getSavedContent);
+router.get('/liked', userController.getLikedContent);
 
 module.exports = router;

@@ -16,8 +16,34 @@ export const userService = {
   // Get user content
   getUserContent: async (params = {}) => {
     try {
-      const response = await api.get('/users/content', { params });
-      return response.data;
+      // Build explore parameters
+      const exploreParams = {};
+      
+      // If creator is provided
+      if (params.creator) {
+        exploreParams.creator = params.creator;
+      }
+      
+      // Add content type if specified and not 'all'
+      if (params.contentType && params.contentType !== 'all') {
+        exploreParams.contentType = params.contentType;
+      }
+      
+      // Add pagination parameters
+      if (params.page) exploreParams.page = params.page;
+      if (params.limit) exploreParams.limit = params.limit;
+      
+      // Sort by newest by default
+      exploreParams.sort = 'newest';
+      
+      // Use the explore endpoint
+      const response = await api.get('/content/explore', { params: exploreParams });
+      
+      // Return content and pagination info
+      return {
+        content: response.data.content || [],
+        pagination: response.data.pagination || { total: 0, page: 1, pages: 0 }
+      };
     } catch (error) {
       console.error('Error fetching user content:', error);
       return { content: [], pagination: { total: 0, page: 1, pages: 0 } };
