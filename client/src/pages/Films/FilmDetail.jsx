@@ -138,13 +138,6 @@ const FilmDetail = () => {
   // Toggle mute
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    if (playerRef.current) {
-      try {
-        playerRef.current.muted = !isMuted;
-      } catch (err) {
-        console.error('Error toggling mute:', err.message || 'Unknown error');
-      }
-    }
   };
   
   // Handle volume change
@@ -152,27 +145,30 @@ const FilmDetail = () => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
-    if (playerRef.current) {
-      try {
-        playerRef.current.volume = newVolume;
-      } catch (err) {
-        console.error('Error changing volume:', err.message || 'Unknown error');
-      }
-    }
   };
   
   // Handle progress change (seeking)
   const handleProgressChange = (e) => {
     const newProgress = parseFloat(e.target.value);
     setProgress(newProgress);
+    
+    // This is the correct way to seek with ReactPlayer
     if (playerRef.current) {
       try {
-        playerRef.current.currentTime = (newProgress / 100) * playerRef.current.duration;
+        // ReactPlayer does have a seekTo method
+        playerRef.current.seekTo(newProgress / 100, 'fraction');
       } catch (err) {
-        console.error('Error changing progress:', err.message || 'Unknown error');
+        console.error('Error seeking:', err.message || 'Unknown error');
       }
     }
   };
+  // Handle progress updates from ReactPlayer
+  const handlePlayerProgress = (state) => {
+    // Update progress without triggering a seek
+    setProgress(state.played * 100);
+  };
+
+
   
   // Handle like/unlike
   const handleLikeToggle = async () => {
@@ -548,9 +544,14 @@ const FilmDetail = () => {
   
   // Function to navigate back
   const handleGoBack = () => {
-    navigate(-1);
+    try {
+      navigate(-1); // This should navigate to the previous page
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback if the history navigation fails
+      navigate('/films');
+    }
   };
-  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -582,29 +583,30 @@ const FilmDetail = () => {
       >
         {/* Video Player */}
         <div className="aspect-video w-full">
-          {film.fileUrl && typeof film.fileUrl === 'string' ? (
-            <ReactPlayer
-              ref={playerRef}
-              url={getUrl(film.fileUrl)}
-              width="100%"
-              height="100%"
-              playing={isPlaying}
-              volume={volume}
-              muted={isMuted}
-              onProgress={(state) => setProgress(state.played * 100)}
-              config={{
-                file: {
-                  attributes: {
-                    controlsList: 'nodownload',
-                  }
+        {film.fileUrl && typeof film.fileUrl === 'string' ? (
+          <ReactPlayer
+            ref={playerRef}
+            url={getUrl(film.fileUrl)}
+            width="100%"
+            height="100%"
+            playing={isPlaying}
+            volume={volume}
+            muted={isMuted}
+            onProgress={handlePlayerProgress}
+            progressInterval={500} // Update progress every 500ms
+            config={{
+              file: {
+                attributes: {
+                  controlsList: 'nodownload',
                 }
-              }}
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blips-card to-purple-900/20 flex items-center justify-center cursor-pointer">
-              <span className="text-4xl text-white opacity-30">Film Preview</span>
-            </div>
-          )}
+              }
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-blips-card to-purple-900/20 flex items-center justify-center cursor-pointer">
+            <span className="text-4xl text-white opacity-30">Film Preview</span>
+          </div>
+        )}
         </div>
         
         {/* Video Controls Overlay */}
