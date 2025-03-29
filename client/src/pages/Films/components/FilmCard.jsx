@@ -1,4 +1,6 @@
 // client/src/pages/Films/components/FilmCard.jsx
+// With fixes for object to primitive conversion errors
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -7,9 +9,35 @@ const FilmCard = ({ film, index }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   
+  // Validate film object
+  if (!film || typeof film !== 'object') {
+    console.error('Invalid film object:', typeof film === 'object' ? 'Empty object' : typeof film);
+    return null; // Don't render anything if film is invalid
+  }
+
+  // Ensure required properties exist
+  const safeFilm = {
+    id: film.id || 'unknown',
+    title: film.title || 'Untitled Film',
+    description: film.description || 'No description available',
+    duration: typeof film.duration === 'number' ? film.duration : 0,
+    year: film.year || new Date().getFullYear(),
+    thumbnailUrl: typeof film.thumbnailUrl === 'string' ? film.thumbnailUrl : null,
+    tags: Array.isArray(film.tags) ? film.tags : [],
+    category: film.category || 'Film',
+    matchPercentage: typeof film.matchPercentage === 'number' ? film.matchPercentage : 75
+  };
+  
+  // Format duration
+  const formatDuration = (durationInSeconds) => {
+    if (!durationInSeconds || typeof durationInSeconds !== 'number') return '0 min';
+    const minutes = Math.floor(durationInSeconds / 60);
+    return `${minutes} min`;
+  };
+  
   // Add function to navigate to detail page
   const navigateToDetail = () => {
-    navigate(`/films/${film.id}`);
+    navigate(`/films/${safeFilm.id}`);
   };
   
   // Prevent navigation when clicking on action buttons
@@ -36,16 +64,34 @@ const FilmCard = ({ film, index }) => {
         }}
         transition={{ duration: 0.3 }}
       >
-        {/* Film thumbnail placeholder */}
-        <div className="w-full h-full bg-gradient-to-br from-blips-dark via-blips-card to-blips-purple/30 flex items-center justify-center">
-          <span className="text-xl text-white opacity-40">{film.title}</span>
+        {/* Film thumbnail */}
+        <div className="w-full h-full bg-gradient-to-br from-blips-dark via-blips-card to-blips-purple/30 flex items-center justify-center relative">
+          {safeFilm.thumbnailUrl ? (
+            <img 
+              src={safeFilm.thumbnailUrl}
+              alt={safeFilm.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = null;
+                e.target.parentElement.innerHTML = `<span class="text-xl text-white opacity-40">${safeFilm.title}</span>`;
+              }}
+            />
+          ) : (
+            <span className="text-xl text-white opacity-40">{safeFilm.title}</span>
+          )}
+          
+          {/* Duration badge */}
+          <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+            {formatDuration(safeFilm.duration)}
+          </div>
         </div>
       </motion.div>
       
       {/* Expanded content on hover */}
       {isHovered && (
         <motion.div 
-          className="absolute top-0 left-0 w-64 bg-blips-dark rounded-md overflow-hidden shadow-xl z-20"
+          className="absolute top-0 left-0 w-64 bg-blips-dark rounded-md overflow-hidden shadow-lg z-20"
           initial={{ opacity: 0, height: '9rem' /* Same as base card */ }}
           animate={{ opacity: 1, height: 'auto' }}
           transition={{ duration: 0.3 }}
@@ -53,7 +99,20 @@ const FilmCard = ({ film, index }) => {
           {/* Thumbnail with play button overlay */}
           <div className="relative">
             <div className="w-full h-36 bg-gradient-to-br from-blips-dark via-blips-card to-blips-purple/30 flex items-center justify-center">
-              <span className="text-xl text-white opacity-40">{film.title}</span>
+              {safeFilm.thumbnailUrl ? (
+                <img 
+                  src={safeFilm.thumbnailUrl}
+                  alt={safeFilm.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = null;
+                    e.target.parentElement.innerHTML = `<span class="text-xl text-white opacity-40">${safeFilm.title}</span>`;
+                  }}
+                />
+              ) : (
+                <span className="text-xl text-white opacity-40">{safeFilm.title}</span>
+              )}
             </div>
             
             <div className="absolute inset-0 flex items-center justify-center">
@@ -113,19 +172,28 @@ const FilmCard = ({ film, index }) => {
             </div>
             
             <div className="flex items-center text-sm mb-2">
-              <span className="text-green-500 font-bold">{film.matchPercentage}% Match</span>
-              <span className="mx-2 text-blips-text-secondary">{film.duration} min</span>
-              <span className="text-blips-text-secondary">{film.year}</span>
+              <span className="text-green-500 font-bold">{safeFilm.matchPercentage}% Match</span>
+              <span className="mx-2 text-blips-text-secondary">{formatDuration(safeFilm.duration)}</span>
+              <span className="text-blips-text-secondary">{safeFilm.year}</span>
             </div>
             
-            <p className="text-xs text-white mb-2 line-clamp-2">{film.description}</p>
+            <p className="text-xs text-white mb-2 line-clamp-2">{safeFilm.description}</p>
             
             <div className="flex flex-wrap gap-1">
-              {film.tags.map((tag, idx) => (
-                <span key={idx} className="text-xs px-2 py-1 bg-blips-card rounded-full text-blips-text-secondary">
-                  {tag}
+              {safeFilm.tags && safeFilm.tags.length > 0 ? (
+                safeFilm.tags.map((tag, idx) => (
+                  <span 
+                    key={idx} 
+                    className="text-xs px-2 py-1 bg-blips-card rounded-full text-blips-text-secondary"
+                  >
+                    {tag}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs px-2 py-1 bg-blips-card rounded-full text-blips-text-secondary">
+                  {safeFilm.category}
                 </span>
-              ))}
+              )}
             </div>
           </div>
         </motion.div>

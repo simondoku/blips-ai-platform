@@ -209,22 +209,53 @@ const Profile = () => {
   };
   
   // Handle tab change
-  const handleTabChange = (tab) => {
+  const handleTabChange = async (tab) => {
     setActiveTab(tab);
-    fetchUserContent(username || currentUser?.username, tab);
+    setIsLoading(true);
+    setContent([]);
+    setFilteredContent([]);
+    
+    try {
+      let response;
+      
+      // For the 'liked' tab, use getSavedContent instead of getLikedContent
+      if (tab === 'liked' && isOwnProfile) {
+        response = await userService.getSavedContent();
+      } else {
+        // For other tabs, continue using getUserContent with the appropriate contentType
+        response = await userService.getUserContent({
+          creator: username || currentUser?.username,
+          contentType: tab !== 'all' ? tab : undefined
+        });
+      }
+      
+      if (response && response.content) {
+        setContent(response.content);
+        setFilteredContent(response.content);
+      }
+    } catch (error) {
+      console.error(`Error fetching ${tab} content:`, error);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  // Handle follow/unfollow
   const handleFollowToggle = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
     
+    setIsFollowLoading(true);
+    
     try {
+      // Optimistically update UI
       setIsFollowing(!isFollowing);
       
+      // Determine which endpoint to use
       const endpoint = isFollowing ? 'unfollowUser' : 'followUser';
+      
+      // Make API call
       await userService[endpoint](user._id);
       
       // Update follower count
@@ -234,9 +265,18 @@ const Profile = () => {
           ? Math.max(0, prev.followerCount - 1) 
           : prev.followerCount + 1
       }));
+      
+      console.log(`User ${isFollowing ? 'unfollowed' : 'followed'} successfully`);
     } catch (error) {
       console.error(`Error ${isFollowing ? 'unfollowing' : 'following'} user:`, error);
-      setIsFollowing(!isFollowing); // Revert UI state on error
+      
+      // Revert UI state on error
+      setIsFollowing(!isFollowing);
+      
+      // Show error message
+      alert(`Failed to ${isFollowing ? 'unfollow' : 'follow'} user. Please try again.`);
+    } finally {
+      setIsFollowLoading(false);
     }
   };
   

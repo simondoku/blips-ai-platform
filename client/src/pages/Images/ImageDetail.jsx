@@ -6,6 +6,7 @@ import contentService from '../../services/contentService';
 import commentService from '../../services/commentService';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import userService from '../../services/userService';
 
 const ImageDetail = () => {
   const { id } = useParams();
@@ -23,7 +24,9 @@ const ImageDetail = () => {
   const [activeReplyId, setActiveReplyId] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+
   // Fetch image details
   useEffect(() => {
     const fetchImageDetails = async () => {
@@ -107,6 +110,45 @@ const ImageDetail = () => {
     }
   };
   
+ // Then replace or implement the handleFollowToggle function
+const handleFollowToggle = async () => {
+  if (!isAuthenticated) {
+    navigate('/login');
+    return;
+  }
+  
+  try {
+    setIsFollowLoading(true);
+    
+    // Optimistically update UI
+    setIsFollowing(!isFollowing);
+    
+    // Call API
+    if (isFollowing) {
+      await userService.unfollowUser(image.creator._id);
+    } else {
+      await userService.followUser(image.creator._id);
+    }
+    
+    // Update follower count
+    setImage(prev => ({
+      ...prev,
+      creator: {
+        ...prev.creator,
+        followerCount: isFollowing 
+          ? Math.max(0, (prev.creator.followerCount || 0) - 1) 
+          : (prev.creator.followerCount || 0) + 1
+      }
+    }));
+  } catch (error) {
+    console.error('Error toggling follow:', error);
+    // Revert UI state on error
+    setIsFollowing(!isFollowing);
+  } finally {
+    setIsFollowLoading(false);
+  }
+};
+
   // Handle save/unsave
   const handleSaveToggle = async () => {
     if (!isAuthenticated) {
@@ -670,10 +712,20 @@ const ImageDetail = () => {
               </Link>
               
               {isAuthenticated && image.creator?.username && (
-                <button className="ml-auto btn-secondary py-1 px-3 text-sm">
-                  Follow
-                </button>
-              )}
+                  <button 
+                    className={`ml-auto ${isFollowing ? 'btn-secondary' : 'btn-primary'} py-1 px-3 text-sm ${isFollowLoading ? 'opacity-50' : ''}`}
+                    onClick={handleFollowToggle}
+                    disabled={isFollowLoading}
+                  >
+                    {isFollowLoading ? 
+                      <span className="flex items-center">
+                        <LoadingSpinner size="sm" className="mr-1" /> 
+                        {isFollowing ? 'Unfollowing...' : 'Following...'}
+                      </span>
+                      : isFollowing ? 'Following' : 'Follow'
+                    }
+                  </button>
+                )}
             </div>
             
             {image.description && (

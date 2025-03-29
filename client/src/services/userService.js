@@ -50,28 +50,28 @@ export const userService = {
     }
   },
   
-  // Follow user
-  followUser: async (userId) => {
-    try {
-      const response = await api.post(`/users/follow/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error following user:', error);
-      throw error;
-    }
-  },
-  
-  // Unfollow user
-  unfollowUser: async (userId) => {
-    try {
-      const response = await api.post(`/users/unfollow/${userId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error unfollowing user:', error);
-      throw error;
-    }
-  },
-  
+ // Follow user
+followUser: async (userId) => {
+  try {
+    const response = await api.post(`/users/follow/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error following user:', error);
+    throw error;
+  }
+},
+
+// Unfollow user
+unfollowUser: async (userId) => {
+  try {
+    const response = await api.post(`/users/unfollow/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error unfollowing user:', error);
+    throw error;
+  }
+},
+
   // Get saved content
   getSavedContent: async (params = {}) => {
     try {
@@ -104,6 +104,16 @@ export const userService = {
     } catch (error) {
       console.error('Error updating profile:', error);
       throw error;
+    }
+  },
+  // Get Liked Content
+  getLikedContent: async (params = {}) => {
+    try {
+      const response = await api.get('/users/liked', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching liked content:', error);
+      return { content: [], pagination: { total: 0, page: 1, pages: 0 } };
     }
   }
 };
