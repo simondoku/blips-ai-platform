@@ -34,22 +34,51 @@ const VideoSidebar = ({ video }) => {
     }
   };
   
-  // Handle like/unlike
-  const handleLikeToggle = async (e) => {
-    e.stopPropagation();
-    try {
-      if (isLiked) {
-        const response = await contentService.unlikeContent(video._id || video.id);
-        setLikeCount(response.likes || likeCount - 1);
-      } else {
-        const response = await contentService.likeContent(video._id || video.id);
-        setLikeCount(response.likes || likeCount + 1);
-      }
-      setIsLiked(!isLiked);
-    } catch (error) {
-      console.error('Error toggling like:', error);
+// First, let's fix VideoSidebar.jsx to properly use the content and user services
+const handleLikeToggle = async (e) => {
+  e.stopPropagation();
+  try {
+    if (!isAuthenticated) {
+      // Redirect to login page if not authenticated
+      navigate('/login');
+      return;
     }
-  };
+    
+    if (isLiked) {
+      await contentService.unlikeContent(video._id || video.id);
+    } else {
+      await contentService.likeContent(video._id || video.id);
+    }
+    
+    // Update UI
+    setIsLiked(!isLiked);
+    setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+  } catch (error) {
+    console.error('Error toggling like:', error);
+    // Show an error notification or toast here
+  }
+};
+
+// Follow handler
+const handleFollowToggle = async (e) => {
+  e.stopPropagation();
+  try {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    if (isFollowing) {
+      await userService.unfollowUser(video.creator._id);
+    } else {
+      await userService.followUser(video.creator._id);
+    }
+    
+    setIsFollowing(!isFollowing);
+  } catch (error) {
+    console.error('Error toggling follow:', error);
+  }
+};
   
   // Handle save/unsave
   const handleSaveToggle = async (e) => {
@@ -91,11 +120,7 @@ const VideoSidebar = ({ video }) => {
             isFollowing ? 'bg-blips-purple' : 'bg-white'
           }`}
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => {
-            handleButtonClick(e);
-            setIsFollowing(!isFollowing);
-            // TODO: Implement actual follow/unfollow API call
-          }}
+          onClick={(e) => {handleFollowToggle}}
         >
           {isFollowing ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">

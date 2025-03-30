@@ -130,84 +130,118 @@ const Upload = () => {
     }
   };
   
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+// Upload component with proper file handling
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!selectedFile) {
+    setError('Please select a file to upload.');
+    return;
+  }
+  
+  if (!title.trim()) {
+    setError('Please enter a title for your content.');
+    return;
+  }
+  
+  setIsSubmitting(true);
+  setError('');
+  setSuccess('');
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('title', title);
+    formData.append('contentType', selectedTab);
     
-    if (!selectedFile) {
-      setError('Please select a file to upload.');
-      return;
+    if (description) {
+      formData.append('description', description);
     }
     
-    if (!title.trim()) {
-      setError('Please enter a title for your content.');
-      return;
+    if (category) {
+      formData.append('category', category);
     }
     
-    setIsSubmitting(true);
-    setError('');
+    if (tags) {
+      formData.append('tags', tags);
+    }
     
-    try {
-      const formData = new FormData();
-      
-      // Log what we're adding to formData for debugging
-      console.log('Adding file:', selectedFile.name);
-      formData.append('file', selectedFile);
-      
-      console.log('Adding title:', title);
-      formData.append('title', title);
-      
-      console.log('Adding contentType:', selectedTab);
-      formData.append('contentType', selectedTab);
-      
-      if (description) {
-        formData.append('description', description);
+    // For videos, try to calculate duration
+    if ((selectedTab === 'short' || selectedTab === 'film') && selectedFile && selectedFile.type.startsWith('video/')) {
+      try {
+        // Create a temporary URL for the video file
+        const videoEl = document.createElement('video');
+        const videoUrl = URL.createObjectURL(selectedFile);
+        
+        videoEl.onloadedmetadata = async () => {
+          URL.revokeObjectURL(videoUrl);
+          const duration = Math.round(videoEl.duration);
+          formData.append('duration', duration.toString());
+          
+          // Submit the form after duration is determined
+          submitFormData(formData);
+        };
+        
+        videoEl.onerror = () => {
+          // If we can't determine duration, still upload with default duration
+          URL.revokeObjectURL(videoUrl);
+          formData.append('duration', '30'); // Default duration
+          submitFormData(formData);
+        };
+        
+        videoEl.src = videoUrl;
+      } catch (mediaError) {
+        // If media error occurs, continue with upload
+        console.error('Error calculating video duration:', mediaError);
+        formData.append('duration', '30'); // Default duration
+        submitFormData(formData);
       }
-      
-      if (category) {
-        formData.append('category', category);
-      }
-      
-      if (tags) {
-        formData.append('tags', tags);
-      }
-      
-      // Add duration for videos if needed
-      if (selectedTab === 'short' || selectedTab === 'film') {
-        // In a real app, you would calculate the video duration
-        // For now, we'll set a dummy value
-        formData.append('duration', '30');
-      }
-      
-      // Upload the content
-      const response = await uploadService.uploadContent(formData, (progress) => {
-        setUploadProgress(progress);
-      });
-      
-      // Set success message
-      setSuccess('Your content was uploaded successfully!');
-      
-      // Reset form
-      setSelectedFile(null);
-      setFilePreview(null);
-      setTitle('');
-      setDescription('');
-      setTags('');
-      setCategory('');
-      setUploadProgress(0);
-      
-      // Navigate to the content page after a delay
-      setTimeout(() => {
+    } else {
+      // For images, submit directly
+      submitFormData(formData);
+    }
+  } catch (error) {
+    console.error('Upload preparation error:', error);
+    setError(error.message || 'Failed to prepare upload. Please try again.');
+    setIsSubmitting(false);
+  }
+};
+
+// Helper function to submit the FormData
+const submitFormData = async (formData) => {
+  try {
+    const response = await uploadService.uploadContent(formData, (progress) => {
+      setUploadProgress(progress);
+    });
+    
+    // Show success message
+    setSuccess('Your content was uploaded successfully!');
+    
+    // Reset form
+    setSelectedFile(null);
+    setFilePreview(null);
+    setTitle('');
+    setDescription('');
+    setTags('');
+    setCategory('');
+    setUploadProgress(0);
+    
+    // Navigate to the content page after a delay
+    setTimeout(() => {
+      if (response && response.content && response.content._id) {
         navigate(`/${selectedTab}s/${response.content._id}`);
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Upload error:', error);
-      setError(error.response?.data?.message || 'Failed to upload content. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      } else {
+        // Fallback to profile page if content ID is not available
+        navigate('/profile');
+      }
+    }, 2000);
+  } catch (error) {
+    console.error('Upload error:', error);
+    setError(error.response?.data?.message || 'Failed to upload content. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   
   // Trigger file input click
   const openFileDialog = () => {

@@ -30,23 +30,33 @@ const Shorts = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isAutoplay, setIsAutoplay] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Current video based on index
-  const currentVideo = videos[currentVideoIndex];
-  
-  // Simulate fetching data from API
+  // Fetch shorts from API
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchShorts = async () => {
       setIsLoading(true);
-      // In a real app, this would be an API call
-      setTimeout(() => {
-        setVideos(MOCK_VIDEOS);
+      try {
+        const response = await contentService.getShorts({ limit: 20 });
+        
+        if (response && response.shorts && response.shorts.length > 0) {
+          setVideos(response.shorts);
+        } else {
+          setError('No shorts available');
+        }
+      } catch (err) {
+        console.error('Error fetching shorts:', err);
+        setError('Failed to load shorts. Please try again later.');
+      } finally {
         setIsLoading(false);
-      }, 1000);
+      }
     };
     
-    fetchData();
+    fetchShorts();
   }, []);
+  
+  // Current video based on index
+  const currentVideo = videos[currentVideoIndex] || null;
   
   // Handle navigation between videos
   const handleNextVideo = () => {

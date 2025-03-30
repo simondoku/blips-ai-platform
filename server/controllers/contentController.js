@@ -113,20 +113,22 @@ exports.getFilms = async (req, res) => {
 };
 
 
+// Update the exploreContent method in contentController.js to include more robust filtering and sorting
 exports.exploreContent = async (req, res) => {
   try {
     const { 
       sort = 'trending', 
       category, 
-      tag, 
+      tags, 
       contentType, 
       creator,
+      search,
       limit = 20, 
       page = 1, 
-      following 
+      following = false
     } = req.query;
     
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * parseInt(limit);
     
     let query = { isPublic: true };
     
@@ -140,15 +142,27 @@ exports.exploreContent = async (req, res) => {
       query.contentType = contentType;
     }
     
-    // Apply tag filter if provided
-    if (tag) {
-      query.tags = { $in: [tag] };
+    // Apply tag filter if provided as a comma-separated list
+    if (tags) {
+      // Convert comma-separated tags to array
+      const tagArray = tags.split(',').map(tag => tag.trim());
+      query.tags = { $in: tagArray };
+    }
+    
+    // Apply search query if provided
+    if (search) {
+      // Create a text search query
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        { title: searchRegex },
+        { description: searchRegex },
+        { tags: searchRegex }
+      ];
     }
     
     // Filter by creator username if provided
     if (creator) {
       // First find the user by username
-      const User = require('../models/User');
       const creatorUser = await User.findOne({ username: creator });
       
       if (creatorUser) {
@@ -164,7 +178,6 @@ exports.exploreContent = async (req, res) => {
     
     // If following is true and user is authenticated, filter by followed creators
     if (following === 'true' && req.user) {
-      const User = require('../models/User');
       const currentUser = await User.findById(req.user.id);
       if (currentUser && currentUser.following && currentUser.following.length > 0) {
         query.creator = { $in: currentUser.following };
@@ -181,18 +194,18 @@ exports.exploreContent = async (req, res) => {
     let sortOptions = {};
     switch (sort) {
       case 'trending':
-        sortOptions = { 'stats.views': -1 };
+        sortOptions = { 'stats.views': -1, createdAt: -1 };
         break;
       case 'newest':
         sortOptions = { createdAt: -1 };
         break;
       case 'popular':
-        sortOptions = { 'stats.likes': -1 };
+        sortOptions = { 'stats.likes': -1, createdAt: -1 };
         break;
       case 'recommended':
-        // This would ideally use a recommendation algorithm
-        // For now, just use a mix of popularity and recency
+        // For recommended, use a mix of recency, views, and likes
         sortOptions = { 
+          'stats.likes': -1,
           'stats.views': -1,
           createdAt: -1
         };
@@ -201,7 +214,7 @@ exports.exploreContent = async (req, res) => {
         sortOptions = { createdAt: -1 };
     }
     
-    // Execute query
+    // Execute query with pagination
     const content = await Content.find(query)
       .sort(sortOptions)
       .skip(skip)
@@ -211,8 +224,19 @@ exports.exploreContent = async (req, res) => {
     // Get total count for pagination
     const total = await Content.countDocuments(query);
     
+    // Add isLiked and isSaved flags for authenticated users
+    let enhancedContent = content;
+    if (req.user) {
+      enhancedContent = content.map(item => {
+        const doc = item.toObject();
+        doc.isLiked = item.likedBy.includes(req.user.id);
+        doc.isSaved = item.savedBy.includes(req.user.id);
+        return doc;
+      });
+    }
+    
     res.json({
-      content,
+      content: enhancedContent,
       pagination: {
         total,
         page: parseInt(page),
@@ -227,6 +251,7 @@ exports.exploreContent = async (req, res) => {
     });
   }
 };
+
 // Fix the getContentById method in contentController.js:
 
 exports.getContentById = async (req, res) => {
