@@ -571,7 +571,17 @@ exports.updateContent = async (req, res) => {
 // Delete Content
 exports.deleteContent = async (req, res) => {
   try {
-    const content = await Content.findById(req.params.id);
+    const contentId = req.params.id;
+    
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(contentId)) {
+      return res.status(400).json({ 
+        message: 'Invalid content ID format'
+      });
+    }
+    
+    // Find the content first to check permissions and get file paths
+    const content = await Content.findById(contentId);
     
     if (!content) {
       return res.status(404).json({ message: 'Content not found' });
@@ -582,33 +592,56 @@ exports.deleteContent = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this content' });
     }
     
-    await Content.deleteOne({ _id: req.params.id });
+    // Store file paths before deleting the document
+    const filePath = content.fileUrl;
+    const thumbnailPath = content.thumbnailUrl;
     
-    // In a real app, you'd also remove the file from S3/cloud storage
-    if (content.fileUrl) {
-      try {
-        const filePath = path.join(__dirname, '..', content.fileUrl);
-        await fs.unlink(filePath);
-      } catch (fileError) {
-        console.error('Error deleting file:', fileError);
-        // Continue even if file deletion fails
-      }
+    // Delete the content document
+    const deleteResult = await Content.deleteOne({ _id: contentId });
+    
+    if (deleteResult.deletedCount === 0) {
+      return res.status(500).json({ message: 'Failed to delete content' });
     }
     
-    // Optional: Delete thumbnail if it exists
-    if (content.thumbnailUrl && content.thumbnailUrl !== content.fileUrl) {
-      try {
-        const thumbnailPath = path.join(__dirname, '..', content.thumbnailUrl);
-        await fs.unlink(thumbnailPath);
-      } catch (thumbError) {
-        console.error('Error deleting thumbnail:', thumbError);
-        // Continue even if thumbnail deletion fails
-      }
+    // Delete comments associated with the content
+    try {
+      const Comment = mongoose.model('Comment');
+      await Comment.deleteMany({ content: contentId });
+    } catch (commentError) {
+      console.error('Error deleting associated comments:', commentError);
+      // Continue even if comment deletion fails
     }
-    res.json({ message: 'Content deleted successfully' });
+    
+    // Delete the actual files
+    try {
+      // Delete main file
+      if (filePath) {
+        const absoluteFilePath = path.join(__dirname, '..', filePath);
+        await fs.unlink(absoluteFilePath);
+      }
+      
+      // Delete thumbnail if it exists and is different from the main file
+      if (thumbnailPath && thumbnailPath !== filePath) {
+        const absoluteThumbnailPath = path.join(__dirname, '..', thumbnailPath);
+        await fs.unlink(absoluteThumbnailPath);
+      }
+    } catch (fileError) {
+      console.error('Error deleting files:', fileError);
+      // We still consider the deletion successful if the database entry was removed,
+      // even if file deletion failed (could be cleaned up later)
+    }
+    
+    // Log the deletion for audit purposes
+    console.log(`Content ${contentId} deleted by user ${req.user.id}`);
+    
+    res.json({ 
+      message: 'Content deleted successfully',
+      contentId
+    });
   } catch (error) {
+    console.error('Content deletion error:', error);
     res.status(500).json({ 
-      message: 'Server error', 
+      message: 'Server error during content deletion', 
       error: error.message 
     });
   }
