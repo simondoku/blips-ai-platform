@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import Logo from '../common/Logo';
+import logoImage from '../common/LogoNoText.png';
 
 const WelcomeAnimation = ({ onFinish }) => {
   const navigate = useNavigate();
@@ -21,14 +21,20 @@ const WelcomeAnimation = ({ onFinish }) => {
 
   return (
     <div className="fixed inset-0 bg-blips-black flex flex-col items-center justify-center z-50">
-      <motion.div
+        <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="mb-6"
       >
         <div className="w-24 h-24">
-          <Logo size="large" />
+          <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+            <img 
+              src={logoImage} 
+              alt="Blips AI Logo" 
+              className="w-16 h-16 object-contain"
+            />
+          </div>
         </div>
       </motion.div>
       

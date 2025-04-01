@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import logoImage from '../../components/common/LogoNoText.png'; // Import the logo image
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -101,17 +102,12 @@ const Register = () => {
           transition={{ duration: 0.3 }}
           className="mx-auto w-20 h-20"
         >
-          <div className="w-full h-full rounded-full bg-blips-purple flex items-center justify-center">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 24 24" 
-              fill="white" 
-              className="w-12 h-12"
-            >
-              <path 
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 16h-2v-6h2v6zm4 0h-2v-6h2v6zm0-8h-6V8h6v2z" 
-              />
-            </svg>
+          <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+            <img 
+              src={logoImage} 
+              alt="Blips AI Logo" 
+              className="w-12 h-12 object-contain"
+            />
           </div>
         </motion.div>
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight">Create an account</h2>
