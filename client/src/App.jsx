@@ -120,16 +120,15 @@ function AppContent() {
               <Layout><Upload /></Layout>
             </ProtectedRoute>
         } />
-        <Route path="/profile" element={
+        {/* Profile Routes with nested routes */}
+        <Route path="/profile/*" element={
             <ProtectedRoute>
               <Layout><Profile /></Layout>
             </ProtectedRoute>
         } />
 
-        <Route path="/profile/:username" element={
-          <ProtectedRoute>
-            <Layout><Profile /></Layout>
-          </ProtectedRoute>
+        <Route path="/profile/:username/*" element={
+          <Layout><Profile /></Layout>
         } />
         
         {/* 404 Route */}

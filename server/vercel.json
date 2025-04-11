@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "blips-api",
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "/server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "5001",
+    "CLIENT_URL": "https://blips-ai.com"
+  }
+}

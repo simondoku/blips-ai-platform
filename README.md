@@ -2,73 +2,39 @@
 
 A platform for hosting AI-generated media including images, short clips, and films.
 
+## Overview
 
-# Blips AI Platform Dependencies
+Blips is a full-stack web application for hosting and sharing AI-generated media content including images, short videos, and films. The platform allows users to upload, browse, and interact with various types of AI-generated content.
 
-This README outlines all the dependencies needed to run the Blips AI platform, which is a full-stack application for hosting AI-generated media.
+## Features
 
-## Backend (Server) Dependencies
+- User authentication (register, login, profile management)
+- Upload and manage AI-generated content (images, shorts, films)
+- Content browsing and discovery
+- Content interaction (comments, likes)
+- Responsive design for mobile and desktop
 
-```bash
-npm install --save express mongoose cors dotenv jsonwebtoken bcrypt multer path fs uuid morgan helmet express-rate-limit express-validator 
-```
+## Tech Stack
 
-### Core Dependencies
+### Frontend
+- React 19 with Vite
+- TailwindCSS for styling
+- React Router for navigation
+- Framer Motion for animations
+- React Hook Form with Zod validation
 
-- **express**: Web server framework
-- **mongoose**: MongoDB ODM for database operations
-- **cors**: Cross-Origin Resource Sharing middleware
-- **dotenv**: Environment variable management
-- **jsonwebtoken**: JWT authentication
-- **bcrypt**: Password hashing
-- **multer**: File upload handling
-- **fs**: File system operations
-- **path**: File path utilities
-- **uuid**: Unique ID generation
+### Backend
+- Express.js on Node.js
+- MongoDB with Mongoose ODM
+- JWT authentication
+- Multer for file uploads
 
-### Additional Dependencies
+## Installation
 
-- **morgan**: HTTP request logger middleware
-- **helmet**: Security headers middleware
-- **express-rate-limit**: Rate limiting middleware
-- **express-validator**: Input validation middleware
-- **react-player**: Media player for streaming video content (server-side rendering support)
-
-### Dev Dependencies
-
-```bash
-npm install --save-dev nodemon
-```
-
-- **nodemon**: Development server with hot reload
-
-## Frontend (Client) Dependencies
-
-```bash
-npm install axios react-router-dom react-player framer-motion tailwindcss postcss autoprefixer react-hook-form zod @hookform/resolvers canvas
-```
-
-### Core Dependencies
-
-- **axios**: HTTP client for API requests
-- **react-router-dom**: Routing for React
-- **react-player**: Media player component for videos
-- **framer-motion**: Animation library
-- **canvas**: Canvas API for image processing and manipulation
-
-### Styling
-
-- **tailwindcss**: Utility-first CSS framework
-- **postcss**: CSS transformation tool
-- **autoprefixer**: PostCSS plugin for vendor prefixes
-
-### Form Handling
-
-- **react-hook-form**: Form state management and validation
-- **zod**: Schema validation
-- **@hookform/resolvers**: Connects Zod with React Hook Form
-
-## Installation Instructions
+### Prerequisites
+- Node.js (v18+)
+- MongoDB (local or Atlas)
+- npm or yarn
 
 ### Backend Setup
 
@@ -85,6 +51,7 @@ npm install
 3. Create a `.env` file with the following variables:
 ```
 PORT=5001
+NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/blips
 JWT_SECRET=your_jwt_secret_here
 ```
@@ -116,6 +83,57 @@ VITE_API_URL=http://localhost:5001/api
 npm run dev
 ```
 
+## Deployment
+
+### Docker Deployment
+
+1. Build and run the application using Docker Compose:
+```bash
+docker-compose up -d
+```
+
+2. Access the application at http://localhost:5001
+
+### Manual Deployment
+
+#### Backend Deployment
+
+1. Set up environment variables for production:
+```
+NODE_ENV=production
+PORT=5001
+MONGODB_URI=your_production_mongodb_uri
+JWT_SECRET=your_secure_jwt_secret
+CLIENT_URL=your_frontend_url
+```
+
+2. Build and start the server:
+```bash
+cd server
+npm install
+npm start
+```
+
+#### Frontend Deployment
+
+1. Set up environment variables for production:
+```
+VITE_API_URL=your_backend_api_url
+```
+
+2. Build the frontend:
+```bash
+cd client
+npm install
+npm run build
+```
+
+3. Serve the built files using a web server like Nginx
+
+## Nginx Configuration
+
+A sample nginx.conf file is provided for hosting the application with Nginx. Update the domain name and SSL certificate paths before using.
+
 ## Notes
 
 - The backend server runs on port 5001 by default
@@ -135,6 +153,9 @@ blips-platform/
 │   ├── routes/         # API routes
 │   ├── uploads/        # Uploaded media files
 │   └── server.js       # Main server file
-├── .gitignore
+├── Dockerfile          # Docker build configuration
+├── docker-compose.yml  # Docker Compose configuration
+├── nginx.conf          # Sample Nginx configuration
+├── .env.example        # Example environment variables
 └── README.md
 ```

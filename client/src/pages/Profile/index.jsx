@@ -1,123 +1,16 @@
 // client/src/pages/Profile/index.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link, Routes, Route } from 'react-router-dom';
+import { useNavigate, useParams, Link, Routes, Route, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { userService } from '../../services/userService';
 import contentService from '../../services/contentService';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-// Profile Settings Component
-const ProfileSettings = () => {
-  const { currentUser, updateProfile } = useAuth();
-  const [formData, setFormData] = useState({
-    displayName: currentUser?.displayName || '',
-    bio: currentUser?.bio || '',
-    profileImage: null
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
-  
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleFileChange = (e) => {
-    setFormData(prev => ({ ...prev, profileImage: e.target.files[0] }));
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage({ type: '', text: '' });
-    
-    try {
-      await updateProfile(formData);
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
-    } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to update profile. Please try again.'
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  return (
-    <div className="bg-blips-dark rounded-lg p-6">
-      <h2 className="text-2xl font-bold mb-6">Profile Settings</h2>
-      
-      {message.text && (
-        <div className={`mb-6 p-4 rounded-md ${
-          message.type === 'success' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
-        }`}>
-          {message.text}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="displayName" className="block text-sm font-medium mb-2">
-            Display Name
-          </label>
-          <input
-            type="text"
-            id="displayName"
-            name="displayName"
-            value={formData.displayName}
-            onChange={handleChange}
-            className="w-full bg-blips-card rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blips-purple"
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="bio" className="block text-sm font-medium mb-2">
-            Bio
-          </label>
-          <textarea
-            id="bio"
-            name="bio"
-            value={formData.bio}
-            onChange={handleChange}
-            rows={4}
-            className="w-full bg-blips-card rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blips-purple"
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="profileImage" className="block text-sm font-medium mb-2">
-            Profile Image
-          </label>
-          <input
-            type="file"
-            id="profileImage"
-            name="profileImage"
-            onChange={handleFileChange}
-            accept="image/*"
-            className="w-full bg-blips-card rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blips-purple"
-          />
-        </div>
-        
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="btn-primary py-2 px-4 flex items-center"
-        >
-          {isSubmitting ? (
-            <>
-              <LoadingSpinner size="sm" className="mr-2" />
-              Saving...
-            </>
-          ) : (
-            'Save Changes'
-          )}
-        </button>
-      </form>
-    </div>
-  );
-};
+// Import the profile related components
+import Settings from './Settings';
+import Liked from './Liked';
+import Saved from './Saved';
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState('all');
@@ -127,16 +20,28 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const { username } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, isAuthenticated } = useAuth();
   const profileUsername = username || currentUser?.username;
   const isOwnProfile = currentUser?.username === profileUsername || !username;
   
+  // Check if we're on a settings/liked/saved page
+  const isSubPage = location.pathname.includes('/settings') || 
+                    location.pathname.includes('/liked') || 
+                    location.pathname.includes('/saved');
+  
   // Fetch user data
   useEffect(() => {
+    // Skip user fetch for sub pages if we already have the user
+    if (isSubPage && user) {
+      return;
+    }
+    
     const fetchUserData = async () => {
       setIsLoading(true);
       setError(null);
@@ -158,8 +63,12 @@ const Profile = () => {
         setContent([]);
         setFilteredContent([]);
         
-        // Fetch user content
-        await fetchUserContent(profileUsername, activeTab);
+        // Fetch user content (only when viewing the main profile page)
+        if (!isSubPage) {
+          await fetchUserContent(profileUsername, activeTab);
+        } else {
+          setIsLoading(false);
+        }
       } catch (error) {
         console.error('Error fetching profile data:', error);
         setError(error.response?.data?.message || 'Failed to load profile. Please try again later.');
@@ -168,7 +77,7 @@ const Profile = () => {
     };
     
     fetchUserData();
-  }, [username, currentUser, navigate]);
+  }, [username, currentUser, navigate, location.pathname]);
   
   // Fetch user content based on tab
   const fetchUserContent = async (profileUsername, contentType = 'all') => {
@@ -187,7 +96,7 @@ const Profile = () => {
       
       // For 'liked' tab, use a different endpoint
       if (contentType === 'liked' && isOwnProfile) {
-        response = await userService.getSavedContent();
+        response = await userService.getLikedContent();
       } else {
         // Use the explore endpoint to get content filtered by creator
         response = await userService.getUserContent(params);
@@ -218,9 +127,9 @@ const Profile = () => {
     try {
       let response;
       
-      // For the 'liked' tab, use getSavedContent instead of getLikedContent
+      // For the 'liked' tab, use getLikedContent 
       if (tab === 'liked' && isOwnProfile) {
-        response = await userService.getSavedContent();
+        response = await userService.getLikedContent();
       } else {
         // For other tabs, continue using getUserContent with the appropriate contentType
         response = await userService.getUserContent({
@@ -434,15 +343,24 @@ const Profile = () => {
               <h1 className="text-3xl font-bold">{user.displayName || user.username}</h1>
               <div className="text-blips-text-secondary">@{user.username}</div>
               
-              <div className="ml-auto">
+              <div className="ml-auto flex space-x-2">
                 {isOwnProfile ? (
-                  <Link to="/profile/settings" className="btn-secondary px-6">Edit Profile</Link>
+                  <>
+                    <Link to={username ? `/profile/${username}/liked` : "/profile/liked"} className="btn-secondary px-4">Liked</Link>
+                    <Link to={username ? `/profile/${username}/saved` : "/profile/saved"} className="btn-secondary px-4">Saved</Link>
+                    <Link to={username ? `/profile/${username}/settings` : "/profile/settings"} className="btn-secondary px-4">Settings</Link>
+                  </>
                 ) : (
                   <button 
                     className={`${isFollowing ? 'btn-secondary' : 'btn-primary'} px-6`}
                     onClick={handleFollowToggle}
+                    disabled={isFollowLoading}
                   >
-                    {isFollowing ? 'Following' : 'Follow'}
+                    {isFollowLoading ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      isFollowing ? 'Following' : 'Follow'
+                    )}
                   </button>
                 )}
               </div>
@@ -473,8 +391,10 @@ const Profile = () => {
       
       {/* Content Routes */}
       <Routes>
-        <Route path="settings" element={<ProfileSettings />} />
-        <Route path="/" element={(
+        <Route path="settings/*" element={<Settings />} />
+        <Route path="liked/*" element={<Liked />} />
+        <Route path="saved/*" element={<Saved />} />
+        <Route path="*" element={(
           <>
             {/* Content Tabs */}
             <div className="border-b border-blips-dark mb-8">

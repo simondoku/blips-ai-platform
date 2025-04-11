@@ -35,7 +35,8 @@ yarn-error.log*
 .DS_Store
 
 # User uploaded content
-/server/uploads/
+/server/uploads/*
+!server/uploads/.gitkeep
 /server/uploads/images/
 /server/uploads/shorts/
 /server/uploads/films/

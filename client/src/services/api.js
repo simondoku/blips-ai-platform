@@ -1,7 +1,8 @@
 // client/src/services/api.js
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const isProd = import.meta.env.PROD;
+const API_URL = import.meta.env.VITE_API_URL || (isProd ? 'https://api.blips-ai.com/api' : 'http://localhost:5001/api');
 
 // Create an axios instance
 const api = axios.create({
