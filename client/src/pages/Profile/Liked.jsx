@@ -7,10 +7,11 @@ import { userService } from '../../services/userService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const Liked = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   const [likedContent, setLikedContent] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [error, setError] = useState(null);
   
   useEffect(() => {
     if (isAuthenticated) {
@@ -23,6 +24,7 @@ const Liked = () => {
   const fetchLikedContent = async (contentType = 'all') => {
     try {
       setIsLoading(true);
+      setError(null);
       
       const params = {};
       if (contentType !== 'all') {
@@ -33,6 +35,7 @@ const Liked = () => {
       setLikedContent(response.content || []);
     } catch (error) {
       console.error('Error fetching liked content:', error);
+      setError(error.response?.data?.message || 'Failed to load liked content. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -79,6 +82,30 @@ const Liked = () => {
     return `http://localhost:5001/${url}`;
   };
   
+  // If not authenticated, show login prompt
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
+          <p className="text-blips-text-secondary mb-6">Please log in to view your liked content.</p>
+          <Link to="/login" className="btn-primary">Log In</Link>
+        </div>
+      </div>
+    );
+  }
+  
+  // If there was an error loading the content
+  if (error && !isLoading) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-xl font-bold mb-2">Error Loading Content</h3>
+        <p className="text-blips-text-secondary mb-6">{error}</p>
+        <Link to="/profile" className="btn-primary">Return to Profile</Link>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

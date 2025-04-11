@@ -120,15 +120,33 @@ function AppContent() {
               <Layout><Upload /></Layout>
             </ProtectedRoute>
         } />
-        {/* Profile Routes with nested routes */}
-        <Route path="/profile/*" element={
+        {/* Profile Routes */}
+        <Route path="/profile/liked" element={
             <ProtectedRoute>
-              <Layout><Profile /></Layout>
+              <Layout><Profile key="liked" /></Layout>
             </ProtectedRoute>
         } />
-
-        <Route path="/profile/:username/*" element={
+        
+        <Route path="/profile/saved" element={
+            <ProtectedRoute>
+              <Layout><Profile key="saved" /></Layout>
+            </ProtectedRoute>
+        } />
+        
+        <Route path="/profile/settings" element={
+            <ProtectedRoute>
+              <Layout><Profile key="settings" /></Layout>
+            </ProtectedRoute>
+        } />
+        
+        <Route path="/profile/:username" element={
           <Layout><Profile /></Layout>
+        } />
+        
+        <Route path="/profile" element={
+            <ProtectedRoute>
+              <Layout><Profile key="main" /></Layout>
+            </ProtectedRoute>
         } />
         
         {/* 404 Route */}

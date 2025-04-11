@@ -75,11 +75,17 @@ unfollowUser: async (userId) => {
   // Get saved content
   getSavedContent: async (params = {}) => {
     try {
+      // Check if the user is authenticated before making this request
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
       const response = await api.get('/users/saved', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching saved content:', error);
-      return { content: [], pagination: { total: 0, page: 1, pages: 0 } };
+      throw error; // Let the component handle the error
     }
   },
   
@@ -109,11 +115,17 @@ unfollowUser: async (userId) => {
   // Get Liked Content
   getLikedContent: async (params = {}) => {
     try {
+      // Check if the user is authenticated before making this request
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      
       const response = await api.get('/users/liked', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching liked content:', error);
-      return { content: [], pagination: { total: 0, page: 1, pages: 0 } };
+      throw error; // Let the component handle the error
     }
   }
 };

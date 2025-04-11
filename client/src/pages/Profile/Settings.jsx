@@ -72,14 +72,29 @@ const Settings = () => {
     setMessage({ type: '', text: '' });
     
     try {
-      await updateProfile(formData);
+      const response = await updateProfile(formData);
+      console.log('Profile updated successfully:', response);
+      
+      // Update preview with the new image URL if updated
+      if (response?.user?.profileImage) {
+        const newImageUrl = getProfileImageUrl(response.user.profileImage);
+        console.log('New profile image URL:', newImageUrl);
+        setPreviewImage(newImageUrl);
+      }
+      
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       
       // Reset file input
       if (document.getElementById('profileImage')) {
         document.getElementById('profileImage').value = '';
+        // Clear the file input but keep the preview
+        setFormData(prevData => ({
+          ...prevData,
+          profileImage: null
+        }));
       }
     } catch (error) {
+      console.error('Profile update error:', error);
       setMessage({ 
         type: 'error', 
         text: error.response?.data?.message || 'Failed to update profile. Please try again.'

@@ -9,7 +9,8 @@ const createUploadDirs = () => {
     'images', 
     'shorts', 
     'films', 
-    'thumbnails'
+    'thumbnails',
+    'profiles' // Add profiles directory for user profile images
   ].map(dir => 
     path.join(__dirname, '../uploads', dir)
   );
@@ -27,7 +28,13 @@ const createLocalStorage = () => {
   
   return multer.diskStorage({
     destination: function(req, file, cb) {
-      // Determine directory based on content type with default fallback
+      // Check if this is a profile image upload
+      if (file.fieldname === 'profileImage') {
+        const uploadDir = path.join(__dirname, '../uploads/profiles');
+        return cb(null, uploadDir);
+      }
+      
+      // For content uploads, determine directory based on content type with default fallback
       const contentType = req.query.contentType || 'image';
       let uploadDir;
       
@@ -135,7 +142,15 @@ const fileFilter = (req, file, cb) => {
     }
   }
   
-  // Now validate the file mimetype against the content type
+  // Special case for profile images 
+  if (file.fieldname === 'profileImage') {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed for profile pictures'), false);
+    }
+    return cb(null, true);
+  }
+  
+  // For other content, validate the file mimetype against the content type
   if (contentType === 'image') {
     if (!file.mimetype.startsWith('image/')) {
       return cb(new Error('Only image files are allowed for image content type'), false);

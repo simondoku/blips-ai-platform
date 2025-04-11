@@ -58,7 +58,10 @@ exports.updateProfile = async (req, res) => {
     
     // Update profile image if uploaded
     if (req.file) {
-      user.profileImage = req.file.path;
+      // Format the path with leading slash for consistency
+      const filePath = req.file.path.replace(/\\/g, '/'); // Convert Windows backslashes to forward slashes
+      user.profileImage = filePath.startsWith('uploads') ? `/${filePath}` : `/${filePath.replace(/^.*?uploads/, 'uploads')}`;
+      console.log('Updated profile image path:', user.profileImage);
     }
     
     await user.save();

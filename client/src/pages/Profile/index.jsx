@@ -30,10 +30,12 @@ const Profile = () => {
   const profileUsername = username || currentUser?.username;
   const isOwnProfile = currentUser?.username === profileUsername || !username;
   
-  // Check if we're on a settings/liked/saved page
-  const isSubPage = location.pathname.includes('/settings') || 
-                    location.pathname.includes('/liked') || 
-                    location.pathname.includes('/saved');
+  // Determine which subpage we're on (if any)
+  const pathname = location.pathname;
+  const isSettingsPage = pathname.endsWith('/settings');
+  const isLikedPage = pathname.endsWith('/liked');
+  const isSavedPage = pathname.endsWith('/saved');
+  const isSubPage = isSettingsPage || isLikedPage || isSavedPage;
   
   // Fetch user data
   useEffect(() => {
@@ -278,6 +280,11 @@ const Profile = () => {
   const getProfileImageUrl = (profileImage) => {
     if (!profileImage) return null;
     
+    // If it's already a data URL 
+    if (profileImage.startsWith('data:')) {
+      return profileImage;
+    }
+    
     // If it's an absolute URL, return as is
     if (profileImage.startsWith('http')) {
       return profileImage;
@@ -389,12 +396,14 @@ const Profile = () => {
         </div>
       </div>
       
-      {/* Content Routes */}
-      <Routes>
-        <Route path="settings/*" element={<Settings />} />
-        <Route path="liked/*" element={<Liked />} />
-        <Route path="saved/*" element={<Saved />} />
-        <Route path="*" element={(
+      {/* Content based on current page */}
+      {isSettingsPage ? (
+        <Settings />
+      ) : isLikedPage ? (
+        <Liked />
+      ) : isSavedPage ? (
+        <Saved />
+      ) : (
           <>
             {/* Content Tabs */}
             <div className="border-b border-blips-dark mb-8">
@@ -580,8 +589,7 @@ const Profile = () => {
               </div>
             )}
           </>
-        )} />
-      </Routes>
+      )}
     </div>
   );
 };
