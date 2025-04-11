@@ -21,6 +21,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Events = lazy(() => import('./pages/Events'));
+const Feedback = lazy(() => import('./pages/Feedback'));
 
 // Loading component
 const Loading = () => (
@@ -89,6 +90,7 @@ function AppContent() {
         <Route path="/films" element={<Layout><Films /></Layout>} />
         <Route path="/films/:id" element={<Layout><FilmDetail /></Layout>} />
         <Route path="/events" element={<Layout><Events /></Layout>} />
+        <Route path="/feedback" element={<Layout><Feedback /></Layout>} />
 
         {/* Authentication Routes */}
         <Route path="/login" element={

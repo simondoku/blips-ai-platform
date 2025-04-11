@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 const isProd = import.meta.env.PROD;
-const API_URL = import.meta.env.VITE_API_URL || (isProd ? 'https://api.blips-ai.com/api' : 'http://localhost:5001/api');
+// Update to use port 50011 for development
+const API_URL = import.meta.env.VITE_API_URL || (isProd ? 'https://api.blips-ai.com/api' : 'http://localhost:50011/api');
 
 // Create an axios instance
 const api = axios.create({

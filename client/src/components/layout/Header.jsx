@@ -114,6 +114,13 @@ const Header = ({ isAuthenticated }) => {
                     >
                       Settings
                     </Link>
+                    <Link 
+                      to="/feedback" 
+                      className="block px-4 py-2 text-sm text-white hover:bg-blips-card"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Send Feedback
+                    </Link>
                     <button 
                       className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-blips-card"
                       onClick={handleLogout}
@@ -127,6 +134,9 @@ const Header = ({ isAuthenticated }) => {
           </>
         ) : (
           <>
+            <Link to="/feedback" className="btn-secondary hidden md:block">
+              Feedback
+            </Link>
             <Link to="/login" className="btn-secondary hidden sm:block">
               Sign In
             </Link>
