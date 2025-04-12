@@ -1,16 +1,19 @@
 // client/src/pages/Shorts/components/VideoSidebar.jsx
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { contentService } from '../../../services/contentService';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const VideoSidebar = ({ video }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [likeCount, setLikeCount] = useState(video.stats?.likes || 0);
-  const [saveCount, setSaveCount] = useState(video.stats?.saves || 0);
+  const [likeCount, setLikeCount] = useState(video?.stats?.likes || 0);
+  const [saveCount, setSaveCount] = useState(video?.stats?.saves || 0);
   
   // Check initial states
   useEffect(() => {
@@ -34,7 +37,6 @@ const VideoSidebar = ({ video }) => {
     }
   };
   
-// First, let's fix VideoSidebar.jsx to properly use the content and user services
 const handleLikeToggle = async (e) => {
   e.stopPropagation();
   try {
@@ -68,10 +70,12 @@ const handleFollowToggle = async (e) => {
       return;
     }
     
+    const userService = await import('../../../services/userService').then(module => module.default);
+    
     if (isFollowing) {
-      await userService.unfollowUser(video.creator._id);
+      await userService.unfollowUser(video.creator?._id);
     } else {
-      await userService.followUser(video.creator._id);
+      await userService.followUser(video.creator?._id);
     }
     
     setIsFollowing(!isFollowing);
@@ -120,7 +124,7 @@ const handleFollowToggle = async (e) => {
             isFollowing ? 'bg-blips-purple' : 'bg-white'
           }`}
           whileTap={{ scale: 0.9 }}
-          onClick={(e) => {handleFollowToggle}}
+          onClick={handleFollowToggle}
         >
           {isFollowing ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">

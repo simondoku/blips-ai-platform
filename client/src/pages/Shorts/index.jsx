@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import VideoPlayer from './components/VideoPlayer';
 import VideoSidebar from './components/VideoSidebar';
 import RecommendedVideos from './components/RecommendedVideos';
+import { contentService } from '../../services/contentService';
 
 // Mock data for initial development
 const MOCK_VIDEOS = Array.from({ length: 10 }).map((_, index) => ({

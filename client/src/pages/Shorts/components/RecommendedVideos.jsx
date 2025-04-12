@@ -1,4 +1,7 @@
-// Update RecommendedVideos.jsx component to handle proper navigation
+// client/src/pages/Shorts/components/RecommendedVideos.jsx
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
 const RecommendedVideos = ({ videos, currentIndex, onSelectVideo }) => {
   const navigate = useNavigate();
   
@@ -122,3 +125,5 @@ const RecommendedVideos = ({ videos, currentIndex, onSelectVideo }) => {
     </div>
   );
 };
+
+export default RecommendedVideos;
