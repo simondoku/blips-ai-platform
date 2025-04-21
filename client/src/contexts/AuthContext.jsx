@@ -92,7 +92,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      // Register with Supabase auth and add metadata
+      // First register with Supabase auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -106,8 +106,24 @@ export const AuthProvider = ({ children }) => {
       
       if (signUpError) throw signUpError;
       
-      // Instead of manually creating a profile, use a database trigger
-      // We'll let Supabase handle profile creation via a trigger
+      if (data?.user) {
+        try {
+          // Use an RPC function or call to create the profile
+          // This approach uses a server-side function with elevated privileges
+          const { error: rpcError } = await supabase.rpc('create_profile', {
+            user_id: data.user.id,
+            user_email: email,
+            user_name: username,
+            display: displayName || username
+          });
+          
+          if (rpcError) console.error("Error creating profile via RPC:", rpcError);
+        } catch (profileError) {
+          console.error("Profile creation attempted but failed:", profileError);
+          // Continue anyway - the authentication was successful
+          // The profile can be created later or fixed by admin
+        }
+      }
       
       return data;
     } catch (error) {
