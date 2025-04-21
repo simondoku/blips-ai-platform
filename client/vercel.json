@@ -2,6 +2,9 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "public": true,
+  "cleanUrls": true,
+  "installCommand": "npm install",
   "routes": [
     {
       "src": "/api/(.*)",

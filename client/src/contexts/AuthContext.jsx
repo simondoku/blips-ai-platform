@@ -92,33 +92,24 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      // Register with Supabase auth
+      // Register with Supabase auth and add metadata
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            username,
+            display_name: displayName || username
+          }
+        }
       });
       
       if (signUpError) throw signUpError;
       
-      if (data?.user) {
-        // Create profile in the profiles table
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: data.user.id, 
-              username, 
-              display_name: displayName || username,
-              email
-            }
-          ]);
-        
-        if (profileError) throw profileError;
-        
-        // No need to set currentUser here - the onAuthStateChange listener will handle it
-        
-        return data;
-      }
+      // Instead of manually creating a profile, use a database trigger
+      // We'll let Supabase handle profile creation via a trigger
+      
+      return data;
     } catch (error) {
       setError(error.message || 'Registration failed');
       throw error;
