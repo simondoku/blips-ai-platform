@@ -5,11 +5,23 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://api.blips-ai.com/api/$1"
+      "dest": "https://blips-nixao578g-simons-projects-94c78eac.vercel.app/api/$1",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
+    },
+    {
+      "src": "/proxy-api/(.*)",
+      "dest": "https://blips-nixao578g-simons-projects-94c78eac.vercel.app/api/$1"
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "https://api.blips-ai.com/uploads/$1"
+      "dest": "https://blips-nixao578g-simons-projects-94c78eac.vercel.app/uploads/$1"
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",

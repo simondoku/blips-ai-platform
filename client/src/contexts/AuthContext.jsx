@@ -1,6 +1,6 @@
 // client/src/contexts/AuthContext.jsx
 import { createContext, useState, useEffect, useContext } from 'react';
-import api from '../services/api';
+import supabase from '../services/supabaseClient';
 
 const AuthContext = createContext();
 
@@ -13,77 +13,156 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    // Check if user is already logged in with Supabase
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          const { user } = session;
+          
+          // Get user profile from Supabase
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          // Combine auth data with profile data
+          const userData = {
+            id: user.id,
+            email: user.email,
+            username: profile?.username || user.email.split('@')[0],
+            displayName: profile?.display_name || profile?.username || user.email.split('@')[0],
+            profileImage: profile?.profile_image || null
+          };
+          
+          setCurrentUser(userData);
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error('Session error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    if (token && storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          const { user } = session;
+          
+          // Get user profile from Supabase
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          // Combine auth data with profile data
+          const userData = {
+            id: user.id,
+            email: user.email,
+            username: profile?.username || user.email.split('@')[0],
+            displayName: profile?.display_name || profile?.username || user.email.split('@')[0],
+            profileImage: profile?.profile_image || null
+          };
+          
+          setCurrentUser(userData);
+          setIsAuthenticated(true);
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+    );
     
-    setLoading(false);
+    checkSession();
+    
+    // Cleanup subscription on unmount
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
   
   // Register a new user
-  const register = async (userData) => {
+  const register = async ({ email, password, username, displayName }) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await api.post('/auth/register', userData);
+      // Register with Supabase auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
       
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (signUpError) throw signUpError;
       
-      setCurrentUser(response.data.user);
-      setIsAuthenticated(true);
-      setLoading(false);
-      
-      return response.data;
+      if (data?.user) {
+        // Create profile in the profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: data.user.id, 
+              username, 
+              display_name: displayName || username,
+              email
+            }
+          ]);
+        
+        if (profileError) throw profileError;
+        
+        // No need to set currentUser here - the onAuthStateChange listener will handle it
+        
+        return data;
+      }
     } catch (error) {
-      setLoading(false);
-      setError(error.response?.data?.message || 'Registration failed');
+      setError(error.message || 'Registration failed');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
   
   // Login user
-  const login = async (credentials) => {
+  const login = async ({ email, password }) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await api.post('/auth/login', credentials);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (error) throw error;
       
-      setCurrentUser(response.data.user);
-      setIsAuthenticated(true);
-      setLoading(false);
+      // No need to set currentUser here - the onAuthStateChange listener will handle it
       
-      return response.data;
+      return data;
     } catch (error) {
-      setLoading(false);
-      setError(error.response?.data?.message || 'Login failed');
+      setError(error.message || 'Login failed');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
   
   // Logout user
   const logout = async () => {
     try {
-      // Call the logout endpoint if needed
-      await api.post('/auth/logout');
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // No need to clear currentUser here - the onAuthStateChange listener will handle it
     } catch (error) {
-      console.error('Logout API error:', error);
+      console.error('Logout error:', error);
     } finally {
-      // Clear auth data regardless of API success
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setCurrentUser(null);
-      setIsAuthenticated(false);
+      setLoading(false);
     }
   };
   
@@ -93,30 +172,61 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      // Handling multipart form data
-      const formData = new FormData();
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
       
-      Object.entries(profileData).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
+      let profileImageUrl = currentUser.profileImage;
       
-      const response = await api.put('/users/profile', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      // Handle profile image upload if it's a file
+      if (profileData.profileImage instanceof File) {
+        const fileExt = profileData.profileImage.name.split('.').pop();
+        const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(fileName, profileData.profileImage);
+        
+        if (uploadError) throw uploadError;
+        
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(fileName);
+        
+        profileImageUrl = urlData.publicUrl;
+      }
       
-      // Update local storage and state
-      const updatedUser = response.data.user;
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Update profile in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          username: profileData.username || currentUser.username,
+          display_name: profileData.displayName || currentUser.displayName,
+          profile_image: profileImageUrl,
+          updated_at: new Date()
+        })
+        .eq('id', currentUser.id);
+      
+      if (updateError) throw updateError;
+      
+      // Update local state
+      const updatedUser = {
+        ...currentUser,
+        username: profileData.username || currentUser.username,
+        displayName: profileData.displayName || currentUser.displayName,
+        profileImage: profileImageUrl
+      };
+      
       setCurrentUser(updatedUser);
       
-      setLoading(false);
-      return response.data;
+      return updatedUser;
     } catch (error) {
-      setLoading(false);
-      setError(error.response?.data?.message || 'Profile update failed');
+      setError(error.message || 'Profile update failed');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
   

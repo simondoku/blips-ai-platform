@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found - Blips</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f7f8f9;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      background-color: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+    h1 {
+      color: #8b5cf6;
+      margin: 0 0 20px;
+      font-size: 2.5rem;
+    }
+    p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin: 20px 0;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #8b5cf6;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      margin-top: 20px;
+      transition: background-color 0.2s;
+    }
+    .btn:hover {
+      background-color: #7c3aed;
+    }
+  </style>
+  <script>
+    // Redirect to the root with the full path as a SPA routing
+    window.onload = function() {
+      // If this is already an internal route handled by React Router, don't redirect
+      if (window.location.pathname.startsWith('/api/') || 
+          window.location.pathname.startsWith('/uploads/')) {
+        // Do nothing - these are API routes
+      } else {
+        // Redirect to root for client-side routing
+        window.location.href = '/';
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>404</h1>
+    <p>The page you're looking for doesn't exist or has been moved.</p>
+    <p>We're redirecting you to the homepage...</p>
+    <a href="/" class="btn">Go to Homepage</a>
+  </div>
+</body>
+</html>

@@ -20,9 +20,10 @@ const Login = () => {
     
     try {
       await login({ email, password });
-      navigate('/welcome'); // Changed from navigate('/')
+      navigate('/welcome'); // Redirect to welcome animation
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      console.error('Login error:', err);
+      setError(err.message || 'Invalid email or password');
     } finally {
       setIsLoading(false);
     }

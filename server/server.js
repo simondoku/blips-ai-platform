@@ -14,11 +14,11 @@ const feedbackRoutes = require('./routes/feedback');
 
 const app = express();
 
-// CORS configuration
-const corsOrigin = process.env.NODE_ENV === 'production' 
-  ? process.env.CLIENT_URL || '*'
-  : 'http://localhost:5173';
-
+// Correct CORS configuration
+const corsOrigin = process.env.NODE_ENV === 'production'
+  ? process.env.CLIENT_URL || 'https://blips-21ogf1383-simons-projects-94c78eac.vercel.app'
+  : 'http://localhost:5173';  // Default Vite dev server port
+  
 app.use(cors({
   origin: corsOrigin,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

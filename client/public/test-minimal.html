@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal API Test</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 5px 10px 0;
+    }
+    .result {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      margin-top: 10px;
+      min-height: 100px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+    }
+    .test-section {
+      margin-bottom: 30px;
+      border: 1px solid #ddd;
+      padding: 15px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Minimal API Test</h1>
+  <p>Testing direct serverless function endpoints</p>
+
+  <div class="test-section">
+    <h2>1. Hello World Test</h2>
+    <input type="text" id="helloUrl" value="https://blips-hrx001088-simons-projects-94c78eac.vercel.app/api/hello" placeholder="Enter hello endpoint URL">
+    <button onclick="testHello()">Test Hello Endpoint</button>
+    <div class="result" id="helloResult">Results will appear here...</div>
+  </div>
+
+  <div class="test-section">
+    <h2>2. Health Check Test</h2>
+    <input type="text" id="healthUrl" value="https://blips-hrx001088-simons-projects-94c78eac.vercel.app/api/health" placeholder="Enter health endpoint URL">
+    <button onclick="testHealth()">Test Health Endpoint</button>
+    <div class="result" id="healthResult">Results will appear here...</div>
+  </div>
+
+  <div class="test-section">
+    <h2>3. Auth Test</h2>
+    <input type="text" id="authUrl" value="https://blips-hrx001088-simons-projects-94c78eac.vercel.app/api/test-auth" placeholder="Enter auth test URL">
+    <button onclick="testAuth()">Test Auth Endpoint (GET)</button>
+    <button onclick="testAuthPost()">Test Auth Endpoint (POST)</button>
+    <div class="result" id="authResult">Results will appear here...</div>
+  </div>
+
+  <script>
+    async function testHello() {
+      const resultDiv = document.getElementById('helloResult');
+      const url = document.getElementById('helloUrl').value.trim();
+      
+      resultDiv.textContent = 'Testing hello endpoint...';
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        resultDiv.textContent = 'Success!\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Error: ' + error.message;
+        console.error('API error:', error);
+      }
+    }
+
+    async function testHealth() {
+      const resultDiv = document.getElementById('healthResult');
+      const url = document.getElementById('healthUrl').value.trim();
+      
+      resultDiv.textContent = 'Testing health endpoint...';
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        resultDiv.textContent = 'Success!\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Error: ' + error.message;
+        console.error('API error:', error);
+      }
+    }
+
+    async function testAuth() {
+      const resultDiv = document.getElementById('authResult');
+      const url = document.getElementById('authUrl').value.trim();
+      
+      resultDiv.textContent = 'Testing auth endpoint with GET...';
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        resultDiv.textContent = 'Success!\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Error: ' + error.message;
+        console.error('API error:', error);
+      }
+    }
+
+    async function testAuthPost() {
+      const resultDiv = document.getElementById('authResult');
+      const url = document.getElementById('authUrl').value.trim();
+      
+      resultDiv.textContent = 'Testing auth endpoint with POST...';
+      
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: 'testuser',
+            email: 'test@example.com',
+            password: 'password123'
+          })
+        });
+        const data = await response.json();
+        resultDiv.textContent = 'Success!\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Error: ' + error.message;
+        console.error('API error:', error);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Debug</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    h1, h2 {
+      color: #8b5cf6;
+    }
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 0;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #7c3aed;
+    }
+    .result {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      margin-top: 10px;
+      min-height: 100px;
+      border: 1px solid #ddd;
+      overflow: auto;
+      max-height: 300px;
+    }
+    .api-url {
+      margin-bottom: 15px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+    }
+    .error {
+      color: #e53e3e;
+      font-weight: bold;
+    }
+    .success {
+      color: #38a169;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>API Connection Debugging</h1>
+  <p>This page tests the connection to your backend API and helps diagnose common issues.</p>
+  
+  <div class="container">
+    <div class="card">
+      <h2>1. Test Backend API</h2>
+      <div class="api-url">
+        <label for="apiBaseUrl">API Base URL:</label>
+        <input type="text" id="apiBaseUrl" value="https://blips-giy6mnnky-simons-projects-94c78eac.vercel.app" />
+      </div>
+      <button id="testHealthButton">Test API Health Endpoint</button>
+      <div class="result" id="healthResult">Results will appear here...</div>
+    </div>
+    
+    <div class="card">
+      <h2>2. Test Authentication</h2>
+      <div class="api-url">
+        <label for="authBaseUrl">Auth API URL:</label>
+        <input type="text" id="authBaseUrl" value="https://blips-giy6mnnky-simons-projects-94c78eac.vercel.app/api" />
+      </div>
+      <button id="testRegisterButton">Test Register Endpoint</button>
+      <div class="result" id="registerResult">Results will appear here...</div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>3. Check CORS Configuration</h2>
+    <p>This tests if the backend is properly configured to accept requests from this frontend.</p>
+    <button id="testCorsButton">Test CORS Configuration</button>
+    <div class="result" id="corsResult">Results will appear here...</div>
+  </div>
+
+  <div class="card">
+    <h2>4. Connection Information</h2>
+    <div>
+      <p><strong>Frontend URL:</strong> <span id="frontendUrl"></span></p>
+      <p><strong>Backend URLs to try:</strong></p>
+      <ul>
+        <li>https://blips-giy6mnnky-simons-projects-94c78eac.vercel.app/api</li>
+        <li>https://blips-giy6mnnky-simons-projects-94c78eac.vercel.app</li>
+        <li>https://blips-965er1pll-simons-projects-94c78eac.vercel.app/api</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Display the current domain
+    document.getElementById('frontendUrl').textContent = window.location.origin;
+    
+    // Test health endpoint
+    document.getElementById('testHealthButton').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('healthResult');
+      const apiBaseUrl = document.getElementById('apiBaseUrl').value.trim();
+      
+      resultDiv.textContent = 'Testing API health endpoint...';
+      resultDiv.className = 'result';
+      
+      try {
+        const endpoint = `${apiBaseUrl}/api/health`;
+        console.log('Testing endpoint:', endpoint);
+        
+        // Call the health endpoint
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        resultDiv.textContent = `Success! API responded with:\n${JSON.stringify(data, null, 2)}`;
+        resultDiv.classList.add('success');
+      } catch (error) {
+        resultDiv.textContent = `Error connecting to API:\n${error.message}\n\nThis could indicate:\n- The API server is not running\n- There's a network connectivity issue\n- The URL is incorrect\n- CORS is not configured correctly`;
+        resultDiv.classList.add('error');
+        console.error('API connection error:', error);
+      }
+    });
+    
+    // Test register endpoint
+    document.getElementById('testRegisterButton').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('registerResult');
+      const authBaseUrl = document.getElementById('authBaseUrl').value.trim();
+      
+      resultDiv.textContent = 'Testing register endpoint...';
+      resultDiv.className = 'result';
+      
+      try {
+        const endpoint = `${authBaseUrl}/auth/register`;
+        console.log('Testing endpoint:', endpoint);
+        
+        // Create test user
+        const testUser = {
+          username: `test_${Date.now()}`,
+          email: `test_${Date.now()}@example.com`,
+          password: 'testpassword123'
+        };
+        
+        // Call the register endpoint
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testUser)
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}\n${errorText}`);
+        }
+        
+        const data = await response.json();
+        resultDiv.textContent = `Success! Registration API responded with:\n${JSON.stringify(data, null, 2)}`;
+        resultDiv.classList.add('success');
+      } catch (error) {
+        resultDiv.textContent = `Error connecting to register API:\n${error.message}\n\nThis could indicate:\n- The API server is not running\n- There's a network connectivity issue\n- The URL is incorrect\n- CORS is not configured correctly\n- The registration endpoint has validation errors`;
+        resultDiv.classList.add('error');
+        console.error('Register API error:', error);
+      }
+    });
+    
+    // Test CORS configuration
+    document.getElementById('testCorsButton').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('corsResult');
+      const apiBaseUrl = document.getElementById('apiBaseUrl').value.trim();
+      
+      resultDiv.textContent = 'Testing CORS configuration...';
+      resultDiv.className = 'result';
+      
+      try {
+        const endpoint = `${apiBaseUrl}/api/health`;
+        console.log('Testing CORS with endpoint:', endpoint);
+        
+        // Call the health endpoint with CORS preflight
+        const response = await fetch(endpoint, {
+          method: 'OPTIONS',
+          headers: {
+            'Content-Type': 'application/json',
+            'Origin': window.location.origin
+          },
+        });
+        
+        // Check CORS headers
+        const corsHeaders = {
+          'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+          'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+          'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
+        };
+        
+        resultDiv.textContent = `CORS Headers Received:\n${JSON.stringify(corsHeaders, null, 2)}`;
+        
+        if (corsHeaders['Access-Control-Allow-Origin']) {
+          resultDiv.textContent += `\n\nCORS appears to be configured. Check if your frontend origin (${window.location.origin}) is allowed.`;
+          resultDiv.classList.add('success');
+        } else {
+          resultDiv.textContent += '\n\nCORS headers not found. The backend needs to be configured to allow requests from this domain.';
+          resultDiv.classList.add('error');
+        }
+      } catch (error) {
+        resultDiv.textContent = `Error testing CORS:\n${error.message}\n\nThis could indicate a network connectivity issue or the backend is not responding.`;
+        resultDiv.classList.add('error');
+        console.error('CORS test error:', error);
+      }
+    });
+  </script>
+</body>
+</html>

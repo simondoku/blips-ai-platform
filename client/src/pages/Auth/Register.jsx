@@ -81,12 +81,14 @@ const Register = () => {
       await register({
         username: formData.username,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        displayName: formData.username // Using username as display name by default
       });
       navigate('/welcome'); // Redirect to welcome animation
     } catch (error) {
+      console.error('Registration error:', error);
       setErrors({
-        form: error.response?.data?.message || 'Registration failed. Please try again.'
+        form: error.message || 'Registration failed. Please try again.'
       });
     } finally {
       setIsLoading(false);

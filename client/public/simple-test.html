@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple API Test</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 5px 10px 0;
+    }
+    .result {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      margin-top: 10px;
+      min-height: 100px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Simple API Test</h1>
+  <p>This page makes direct API calls to test basic connectivity</p>
+  
+  <div class="card">
+    <h2>API Base URL</h2>
+    <input type="text" id="baseUrl" value="https://blips-itlmd5nrr-simons-projects-94c78eac.vercel.app" />
+  </div>
+  
+  <div class="card">
+    <h2>Test API Health</h2>
+    <button onclick="testEndpoint('/api/health')">Test Health Endpoint</button>
+    <button onclick="testEndpointNoCors('/api/health')">Test Health Endpoint (No CORS)</button>
+    <div class="result" id="healthResult">Results will appear here...</div>
+  </div>
+  
+  <div class="card">
+    <h2>Test Hello World</h2>
+    <button onclick="testEndpoint('/api/hello')">Test Hello Endpoint</button>
+    <button onclick="testProxyEndpoint('/hello')">Test via Proxy</button>
+    <div class="result" id="helloResult">Results will appear here...</div>
+  </div>
+  
+  <div class="card">
+    <h2>Test Register</h2>
+    <button onclick="testAuth()">Test Register Endpoint</button>
+    <button onclick="testAuthViaProxy()">Test Register via Proxy</button>
+    <div class="result" id="authResult">Results will appear here...</div>
+  </div>
+  
+  <div class="card">
+    <h2>Direct Browser Fetch</h2>
+    <p>Open this link directly in your browser (should work regardless of CORS):</p>
+    <a id="directLink" href="" target="_blank">Direct API Link</a>
+  </div>
+
+  <script>
+    // Update direct link
+    document.getElementById('baseUrl').addEventListener('input', function() {
+      updateDirectLink();
+    });
+    
+    function updateDirectLink() {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      const directLink = document.getElementById('directLink');
+      directLink.href = `${baseUrl}/api/hello`;
+      directLink.textContent = `${baseUrl}/api/hello`;
+    }
+    
+    // Initial update
+    updateDirectLink();
+    
+    async function testEndpoint(endpoint) {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      const url = `${baseUrl}${endpoint}`;
+      const resultId = endpoint.includes('health') ? 'healthResult' : 'helloResult';
+      const resultDiv = document.getElementById(resultId);
+      
+      resultDiv.textContent = `Testing ${url}...`;
+      
+      try {
+        console.log('Fetching:', url);
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        resultDiv.textContent = `Success! Response:\n${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        resultDiv.textContent = `Error: ${error.message}\n\nCheck console for details`;
+        console.error('API error:', error);
+      }
+    }
+    
+    async function testEndpointNoCors(endpoint) {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      const url = `${baseUrl}${endpoint}`;
+      const resultDiv = document.getElementById('healthResult');
+      
+      resultDiv.textContent = `Testing ${url} with no-cors mode...`;
+      
+      try {
+        console.log('Fetching with no-cors:', url);
+        const response = await fetch(url, {
+          method: 'GET',
+          mode: 'no-cors', // This will allow the request but make the response opaque
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // With no-cors mode, we can't access the response content
+        resultDiv.textContent = `Request completed in no-cors mode. Status: ${response.status || 'opaque'}\n` +
+                                 `Type: ${response.type}\n\n` +
+                                 `Note: With no-cors mode, you can't access the response content,\n` +
+                                 `but the request was sent successfully.`;
+      } catch (error) {
+        resultDiv.textContent = `Error: ${error.message}\n\nCheck console for details`;
+        console.error('API error:', error);
+      }
+    }
+    
+    async function testProxyEndpoint(endpoint) {
+      // Use the client's own proxy to avoid CORS issues
+      const url = `/proxy-api${endpoint}`;
+      const resultDiv = document.getElementById('helloResult');
+      
+      resultDiv.textContent = `Testing via frontend proxy: ${url}...`;
+      
+      try {
+        console.log('Fetching via proxy:', url);
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        resultDiv.textContent = `Success via proxy! Response:\n${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        resultDiv.textContent = `Error with proxy: ${error.message}\n\nCheck console for details`;
+        console.error('Proxy API error:', error);
+      }
+    }
+    
+    async function testAuth() {
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      const url = `${baseUrl}/api/auth/register`;
+      const resultDiv = document.getElementById('authResult');
+      
+      resultDiv.textContent = `Testing ${url}...`;
+      
+      try {
+        console.log('Fetching:', url);
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: 'testuser',
+            email: 'test@example.com',
+            password: 'password123'
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        resultDiv.textContent = `Success! Response:\n${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        resultDiv.textContent = `Error: ${error.message}\n\nCheck console for details`;
+        console.error('API error:', error);
+      }
+    }
+    
+    async function testAuthViaProxy() {
+      // Use the client's own proxy to avoid CORS issues
+      const url = `/proxy-api/auth/register`;
+      const resultDiv = document.getElementById('authResult');
+      
+      resultDiv.textContent = `Testing register via frontend proxy: ${url}...`;
+      
+      try {
+        console.log('Fetching via proxy:', url);
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            username: 'testuser_proxy',
+            email: 'test_proxy@example.com',
+            password: 'password123'
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        resultDiv.textContent = `Success via proxy! Response:\n${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        resultDiv.textContent = `Error with proxy: ${error.message}\n\nCheck console for details`;
+        console.error('Proxy API error:', error);
+      }
+    }
+  </script>
+</body>
+</html>

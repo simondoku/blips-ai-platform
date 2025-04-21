@@ -41,3 +41,4 @@ yarn-error.log*
 /server/uploads/shorts/
 /server/uploads/films/
 /server/uploads/thumbnails/
+.vercel

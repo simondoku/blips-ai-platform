@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth API Debug</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 { color: #8b5cf6; }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover {
+      background: #7c3aed;
+    }
+    .result {
+      background: #f4f4f8;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    .error { color: #e53e3e; }
+    .success { color: #38a169; }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      border-bottom: 2px solid #8b5cf6;
+      font-weight: bold;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>Blips Auth API Debugger</h1>
+  <p>Use this tool to test your authentication API endpoints directly.</p>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="url-config">URL Config</div>
+    <div class="tab" data-tab="register">Register</div>
+    <div class="tab" data-tab="login">Login</div>
+    <div class="tab" data-tab="health">Health Check</div>
+  </div>
+
+  <div class="tab-content active" id="url-config">
+    <div class="card">
+      <h2>API URL Configuration</h2>
+      <div class="input-group">
+        <label for="api-url">Backend API URL</label>
+        <input type="text" id="api-url" placeholder="https://your-api-url.vercel.app/api" value="">
+      </div>
+      <button id="save-url">Save URL</button>
+      <p>Currently using: <span id="current-url" class="success">Not set</span></p>
+    </div>
+  </div>
+
+  <div class="tab-content" id="register">
+    <div class="card">
+      <h2>Register User</h2>
+      <div class="input-group">
+        <label for="reg-username">Username</label>
+        <input type="text" id="reg-username" placeholder="testuser" value="testuser1">
+      </div>
+      <div class="input-group">
+        <label for="reg-email">Email</label>
+        <input type="email" id="reg-email" placeholder="test@example.com" value="test1@example.com">
+      </div>
+      <div class="input-group">
+        <label for="reg-password">Password</label>
+        <input type="password" id="reg-password" placeholder="password" value="password123">
+      </div>
+      <button id="register-btn">Register</button>
+      <div class="result" id="register-result">Results will appear here...</div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="login">
+    <div class="card">
+      <h2>Login User</h2>
+      <div class="input-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="test@example.com" value="test1@example.com">
+      </div>
+      <div class="input-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="password" value="password123">
+      </div>
+      <button id="login-btn">Login</button>
+      <div class="result" id="login-result">Results will appear here...</div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="health">
+    <div class="card">
+      <h2>API Health Check</h2>
+      <button id="health-btn">Check API Health</button>
+      <div class="result" id="health-result">Results will appear here...</div>
+    </div>
+  </div>
+
+  <script>
+    // Handle tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+
+    // Handle API URL
+    let apiBaseUrl = localStorage.getItem('debug_api_url') || '';
+    document.getElementById('api-url').value = apiBaseUrl;
+    document.getElementById('current-url').textContent = apiBaseUrl || 'Not set';
+
+    document.getElementById('save-url').addEventListener('click', () => {
+      apiBaseUrl = document.getElementById('api-url').value.trim();
+      if (apiBaseUrl) {
+        // Remove trailing slash if present
+        if (apiBaseUrl.endsWith('/')) {
+          apiBaseUrl = apiBaseUrl.slice(0, -1);
+        }
+        localStorage.setItem('debug_api_url', apiBaseUrl);
+        document.getElementById('current-url').textContent = apiBaseUrl;
+        alert('API URL saved!');
+      } else {
+        alert('Please enter a valid API URL');
+      }
+    });
+
+    // Helper function to show results
+    function showResult(elementId, data, isError = false) {
+      const resultEl = document.getElementById(elementId);
+      if (isError) {
+        resultEl.innerHTML = `<span class="error">Error:</span> ${data}`;
+      } else {
+        resultEl.innerHTML = typeof data === 'object' 
+          ? JSON.stringify(data, null, 2) 
+          : data;
+      }
+    }
+
+    // Register endpoint
+    document.getElementById('register-btn').addEventListener('click', async () => {
+      if (!apiBaseUrl) {
+        showResult('register-result', 'Please set the API URL first.', true);
+        return;
+      }
+
+      const resultEl = document.getElementById('register-result');
+      resultEl.textContent = 'Sending request...';
+
+      const userData = {
+        username: document.getElementById('reg-username').value.trim(),
+        email: document.getElementById('reg-email').value.trim(),
+        password: document.getElementById('reg-password').value
+      };
+
+      try {
+        // Log request details
+        console.log(`Sending POST request to: ${apiBaseUrl}/auth/register`);
+        console.log('Request body:', userData);
+        
+        const response = await fetch(`${apiBaseUrl}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        });
+
+        // Log response status
+        console.log(`Response status: ${response.status}`);
+        
+        // Get response data
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (response.ok) {
+          showResult('register-result', data);
+        } else {
+          showResult('register-result', data, true);
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        showResult('register-result', `${error.message}\n\nCheck the console for more details.`, true);
+      }
+    });
+
+    // Login endpoint
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      if (!apiBaseUrl) {
+        showResult('login-result', 'Please set the API URL first.', true);
+        return;
+      }
+
+      const resultEl = document.getElementById('login-result');
+      resultEl.textContent = 'Sending request...';
+
+      const credentials = {
+        email: document.getElementById('login-email').value.trim(),
+        password: document.getElementById('login-password').value
+      };
+
+      try {
+        // Log request details
+        console.log(`Sending POST request to: ${apiBaseUrl}/auth/login`);
+        console.log('Request body:', credentials);
+        
+        const response = await fetch(`${apiBaseUrl}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials)
+        });
+
+        // Log response status
+        console.log(`Response status: ${response.status}`);
+        
+        // Get response data
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (response.ok) {
+          showResult('login-result', data);
+        } else {
+          showResult('login-result', data, true);
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        showResult('login-result', `${error.message}\n\nCheck the console for more details.`, true);
+      }
+    });
+
+    // Health check endpoint
+    document.getElementById('health-btn').addEventListener('click', async () => {
+      if (!apiBaseUrl) {
+        showResult('health-result', 'Please set the API URL first.', true);
+        return;
+      }
+
+      const resultEl = document.getElementById('health-result');
+      resultEl.textContent = 'Checking API health...';
+
+      try {
+        // Log request details
+        console.log(`Sending GET request to: ${apiBaseUrl}/health`);
+        
+        const response = await fetch(`${apiBaseUrl}/health`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        // Log response status
+        console.log(`Response status: ${response.status}`);
+        
+        // Get response data
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (response.ok) {
+          showResult('health-result', data);
+        } else {
+          showResult('health-result', data, true);
+        }
+      } catch (error) {
+        console.error('Health check error:', error);
+        showResult('health-result', `${error.message}\n\nCheck the console for more details.`, true);
+      }
+    });
+  </script>
+</body>
+</html>

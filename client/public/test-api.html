@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    button {
+      background: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+
+    #result {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>API Connection Test</h1>
+  <p>This page tests if your frontend can connect to your backend API.</p>
+
+  <div>
+    <p>Currently configured API URL: <span id="apiUrl">loading...</span></p>
+    <button id="testHealthButton">Test API Health Endpoint</button>
+  </div>
+
+  <div id="result">Results will appear here...</div>
+
+  <script>
+    // Display the current domain
+    const apiBase = 'https://blips-l7jqzwrja-simons-projects-94c78eac.vercel.app/api';
+    document.getElementById('apiUrl').textContent = apiBase;
+
+    document.getElementById('testHealthButton').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('result');
+      resultDiv.textContent = 'Testing API connection...';
+
+      try {
+        const response = await fetch(`${apiBase}/health`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await response.json();
+        resultDiv.textContent = 'Success! API responded with:\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Error connecting to API:\n' + error.message;
+        console.error('API connection error:', error);
+      }
+    });
+  </script>
+
+  <!-- Auth API Test -->
+  <button id="testAuthButton">Test Auth API</button>
+  <script>
+    document.getElementById('testAuthButton').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('result');
+      resultDiv.textContent = 'Testing Auth API...';
+
+      try {
+        const response = await fetch(`${apiBase}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'testuser',
+            email: 'test@example.com',
+            password: 'password123'
+          })
+        });
+
+        const data = await response.json();
+        resultDiv.textContent = 'Auth API responded with:\n' + JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultDiv.textContent = 'Error connecting to Auth API:\n' + error.message;
+        console.error('API connection error:', error);
+      }
+    });
+  </script>
+</body>
+
+</html>
