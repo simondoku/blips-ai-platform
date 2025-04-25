@@ -106,24 +106,11 @@ export const AuthProvider = ({ children }) => {
       
       if (signUpError) throw signUpError;
       
-      if (data?.user) {
-        try {
-          // Use an RPC function or call to create the profile
-          // This approach uses a server-side function with elevated privileges
-          const { error: rpcError } = await supabase.rpc('create_profile', {
-            user_id: data.user.id,
-            user_email: email,
-            user_name: username,
-            display: displayName || username
-          });
-          
-          if (rpcError) console.error("Error creating profile via RPC:", rpcError);
-        } catch (profileError) {
-          console.error("Profile creation attempted but failed:", profileError);
-          // Continue anyway - the authentication was successful
-          // The profile can be created later or fixed by admin
-        }
-      }
+      // Simply return the auth data without trying to create a profile
+      // Let's rely on either:
+      // 1. A database trigger (if you set one up)
+      // 2. Creating the profile on first login
+      // 3. Your RLS policies being configured to handle this case
       
       return data;
     } catch (error) {
