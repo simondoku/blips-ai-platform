@@ -214,7 +214,8 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false
+  withCredentials: false,
+  timeout: 45000 // Increased from 10s to 45s to match server-side socket timeout
 });
 
 // Add request interceptor to include auth token

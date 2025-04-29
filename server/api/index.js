@@ -7,6 +7,13 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 // MongoDB connection - Optimized for serverless
+
+// Comment indicating this file's purpose
+// Note: This file provides serverless-compatible API endpoints for platforms
+// like Vercel or Netlify Functions. It uses connection pooling and other
+// optimizations specific to serverless environments.
+// The main Express server is in /server/server.js
+
 let cachedDb = null;
 let isConnecting = false;
 let connectionPromise = null;
@@ -24,12 +31,23 @@ const connectToDatabase = async () => {
 
   try {
     isConnecting = true;
-    // Set serverless-friendly options
+    console.log('Attempting to connect to MongoDB...');
+    
+    // Log the MongoDB URI (redacted for security)
+    const mongoUri = process.env.MONGODB_URI || 'Not set';
+    const redactedUri = mongoUri !== 'Not set' 
+      ? mongoUri.replace(/:([^@]+)@/, ':****@') 
+      : 'Not set';
+    console.log(`Using MongoDB URI: ${redactedUri}`);
+    
+    // Set serverless-friendly options with increased timeouts
     connectionPromise = mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-      socketTimeoutMS: 10000, // 10s timeout for operations
-      maxPoolSize: 10, // Keep connection pool small
-      minPoolSize: 1
+      serverSelectionTimeoutMS: 15000, // Increased from 5s to 15s
+      socketTimeoutMS: 45000,          // Increased from 10s to 45s
+      connectTimeoutMS: 30000,         // Add explicit connect timeout
+      maxPoolSize: 10,                 // Keep connection pool small
+      minPoolSize: 1,
+      family: 4                        // Force IPv4 (sometimes helps with connection issues)
     });
     
     cachedDb = await connectionPromise;
@@ -37,6 +55,12 @@ const connectToDatabase = async () => {
     return cachedDb;
   } catch (error) {
     console.error('MongoDB connection error:', error);
+    console.error('Connection error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     throw error;
   } finally {
     isConnecting = false;

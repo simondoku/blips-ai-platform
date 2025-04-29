@@ -14,17 +14,15 @@ const feedbackRoutes = require('./routes/feedback');
 
 const app = express();
 
-// Correct CORS configuration
-const corsOrigin = process.env.NODE_ENV === 'production'
-  ? process.env.CLIENT_URL || 'https://blips-21ogf1383-simons-projects-94c78eac.vercel.app'
-  : 'http://localhost:5173';  // Default Vite dev server port
-  
+// CORS configuration
 app.use(cors({
-  origin: corsOrigin,
+  origin: '*',  // Allow all origins for local testing
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
   credentials: true
 }));
+
+console.log('CORS configured to allow all origins for local testing');
 
 // Middleware
 app.use(express.json());
@@ -49,14 +47,30 @@ app.use('/api/feedback', feedbackRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
+  console.log('Health check endpoint hit');
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
 
-// Connect to MongoDB
+// Debug route
+app.get('/', (req, res) => {
+  console.log('Root endpoint hit');
+  res.status(200).send('Server is running. API available at /api endpoints.');
+});
+
+// MongoDB connection
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 15000,  // 15s instead of default 30s
+    socketTimeoutMS: 45000,           // 45s 
+    connectTimeoutMS: 30000,          // 30s
+    family: 4                         // Force IPv4
+  })
   .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('Could not connect to MongoDB', err));
+  .catch((err) => {
+    console.error('Could not connect to MongoDB', err);
+    console.error('MongoDB URI format issue detected. Ensure your .env file contains the correct connection string.');
+    console.error('The connection string should look like: mongodb+srv://username:password@clustername.mongodb.net/?retryWrites=true&w=majority');
+  });
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
@@ -81,7 +95,7 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 5001; // Using 5001 in case port 5000 is busy
+const PORT = process.env.PORT || 5001;
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
