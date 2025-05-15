@@ -16,13 +16,12 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-  origin: '*',  // Allow all origins for local testing
+  origin: 'https://blips-ai.com',  // Allow only your frontend domain
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  credentials: true
+  credentials: true // If cookies or credentials are needed
 }));
 
-console.log('CORS configured to allow all origins for local testing');
 
 // Middleware
 app.use(express.json());
