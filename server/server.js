@@ -14,19 +14,26 @@ const feedbackRoutes = require('./routes/feedback');
 
 const app = express();
 
-// CORS configuration
+// Updated CORS configuration
 app.use(cors({
-  origin: 'https://blips-ai.com',  // Allow only your frontend domain
+  origin: 'https://blips-ai.com', // Allow only your frontend domain
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
   credentials: true // If cookies or credentials are needed
 }));
 
+// Handle CORS preflight requests
+app.options('*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://blips-ai.com'); // Allow your frontend domain
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true'); // If credentials are needed
+  res.sendStatus(200); // Respond with HTTP 200 OK
+});
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.options('*', cors());
 
 // Create uploads directory if it doesn't exist
 const fs = require('fs');

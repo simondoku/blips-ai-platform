@@ -204,18 +204,48 @@ sudo certbot renew --dry-run
 
 ## Troubleshooting
 
-1. Check application logs:
+1. **CORS Issues**:
+   - Ensure the backend is configured to allow requests from the frontend domain.
+   - Check the `server.js` file for proper CORS configuration:
+     ```javascript
+     app.use(cors({
+       origin: 'https://blips-ai.com',
+       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+       allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+       credentials: true
+     }));
+     ```
+   - Ensure preflight requests (`OPTIONS`) are handled:
+     ```javascript
+     app.options('*', (req, res) => {
+       res.setHeader('Access-Control-Allow-Origin', 'https://blips-ai.com');
+       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+       res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+       res.setHeader('Access-Control-Allow-Credentials', 'true');
+       res.sendStatus(200);
+     });
+     ```
+
+2. **404 Errors for API Endpoints**:
+   - Verify that the API routes are correctly defined in `server.js`.
+   - Ensure the frontend is making requests to the correct backend URL (`https://api.blips-ai.com`).
+
+3. **MongoDB Connection Issues**:
+   - Check the `MONGODB_URI` in the `.env` file.
+   - Ensure the database is accessible and the credentials are correct.
+
+4. Check application logs:
 ```bash
 pm2 logs blips-server
 ```
 
-2. Check Nginx logs:
+5. Check Nginx logs:
 ```bash
 sudo tail -f /var/log/nginx/access.log
 sudo tail -f /var/log/nginx/error.log
 ```
 
-3. Check MongoDB logs:
+6. Check MongoDB logs:
 ```bash
 sudo tail -f /var/log/mongodb/mongodb.log
 ```
