@@ -26,6 +26,7 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.options('*', cors());
 
 // Create uploads directory if it doesn't exist
 const fs = require('fs');
