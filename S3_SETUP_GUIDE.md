@@ -25,45 +25,81 @@ This guide will walk you through setting up Amazon S3 storage for your Blips Pla
 2. Click "Users" → "Create user"
 3. Enter username (e.g., `blips-s3-user`)
 4. Click "Next"
-5. Select "Attach policies directly"
-6. Create a custom policy with these permissions:
+5. In the "Set permissions" step, you have three options:
+   - **Option A**: Select "Attach policies directly" (if available)
+   - **Option B**: Select "Add user to group" and create a new group
+   - **Option C**: Select "Copy permissions" from an existing user
+
+**For Option A or B**, you'll need to create a custom policy with these permissions:
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject",
-                "s3:DeleteObject",
-                "s3:PutObjectAcl"
-            ],
-            "Resource": "arn:aws:s3:::your-blips-bucket-name/*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:ListBucket"
-            ],
-            "Resource": "arn:aws:s3:::your-blips-bucket-name"
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:PutObjectAcl"
+      ],
+      "Resource": "arn:aws:s3:::your-blips-bucket-name/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::your-blips-bucket-name"
+    }
+  ]
 }
 ```
 
-7. Replace `your-blips-bucket-name` with your actual bucket name
-8. Create the user and **save the Access Key ID and Secret Access Key**
+### If you chose "Add user to group":
+
+1. Click "Create group"
+2. Enter group name (e.g., `blips-s3-group`)
+3. Click "Create policy" to create the custom policy above
+4. Search for and select your newly created policy
+5. Create the group and add your user to it
+
+### If you chose "Attach policies directly":
+
+1. Click "Create policy"
+2. Switch to the JSON tab
+3. Paste the policy JSON above
+4. Replace `your-blips-bucket-name` with your actual bucket name
+5. Review and create the policy
+6. Go back to user creation and attach this policy
+
+### Alternative: Use AWS Managed Policies (Less Secure)
+
+If you want a quicker setup for testing, you can use:
+
+- `AmazonS3FullAccess` (gives access to ALL S3 buckets - not recommended for production)
+
+**Important**: Always replace `your-blips-bucket-name` with your actual bucket name in the policy!
+
+7. Create the user and **save the Access Key ID and Secret Access Key**
+
+**Note**: After creating the user, you'll need to create access keys:
+
+1. Click on the newly created user
+2. Go to "Security credentials" tab
+3. Click "Create access key"
+4. Choose "Application running on an AWS compute service" or "Other"
+5. **Important**: Download and save the Access Key ID and Secret Access Key immediately
 
 ## Step 3: Configure Environment Variables
 
 1. Copy your `.env.example` to `.env` in the server directory:
+
 ```bash
 cp server/.env.example server/.env
 ```
 
 2. Update your `.env` file with S3 configuration:
+
 ```bash
 # Storage Configuration
 STORAGE_TYPE=s3
@@ -78,6 +114,7 @@ AWS_S3_BUCKET=your-blips-bucket-name
 ## Step 4: Test the Configuration
 
 1. Start your server:
+
 ```bash
 cd server
 npm run dev
@@ -95,12 +132,16 @@ If you encounter CORS issues, add this policy to your S3 bucket:
 
 ```json
 [
-    {
-        "AllowedHeaders": ["*"],
-        "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
-        "AllowedOrigins": ["http://localhost:3000", "http://localhost:5173", "your-production-domain.com"],
-        "ExposeHeaders": ["ETag"]
-    }
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "your-production-domain.com"
+    ],
+    "ExposeHeaders": ["ETag"]
+  }
 ]
 ```
 
@@ -159,6 +200,7 @@ aws s3 ls s3://your-bucket-name --recursive
 ## Next Steps
 
 Once S3 is configured, you can:
+
 1. Set up CloudFront for CDN
 2. Implement video transcoding with AWS MediaConvert
 3. Add video thumbnails generation with AWS Lambda
