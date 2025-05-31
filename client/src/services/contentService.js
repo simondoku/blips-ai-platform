@@ -2,21 +2,6 @@
 import api from './api';
 
 export const contentService = {
-  // Get images with proper error handling
-  getImages: async (params = {}) => {
-    try {
-      const response = await api.get('/content/images', { params });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      // Return fallback structure in case of error
-      return { 
-        images: [], 
-        pagination: { total: 0, page: 1, pages: 0 } 
-      };
-    }
-  },
-  
   // Get shorts
   getShorts: async (params = {}) => {
     try {

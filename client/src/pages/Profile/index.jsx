@@ -247,13 +247,11 @@ const Profile = () => {
     }
   };
   
-  // Helper function to get correct image URL
+  // Helper function to get thumbnail URL for video content
   const getImageUrl = (item) => {
     if (!item) return null;
     
-    const url = item.contentType === 'image' ? 
-      item.fileUrl : 
-      item.thumbnailUrl;
+    const url = item.thumbnailUrl;
     
     if (!url) return null;
     
@@ -410,7 +408,6 @@ const Profile = () => {
               <div className="flex overflow-x-auto scrollbar-hide">
                 {[
                   { id: 'all', label: 'All Content' },
-                  { id: 'image', label: 'Images' },
                   { id: 'short', label: 'Short Clips' },
                   { id: 'film', label: 'Films' },
                   ...(isOwnProfile ? [{ id: 'liked', label: 'Liked' }] : []),
@@ -439,12 +436,10 @@ const Profile = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filteredContent.map((item) => {
                   // Determine content type
-                  const contentType = item.contentType || 'image';
+                  const contentType = item.contentType || 'short';
                   
-                  // Get URL path
-                  const urlPath = contentType === 'image' 
-                    ? `/images/${item._id || item.id}` 
-                    : `/${contentType}s/${item._id || item.id}`;
+                  // Get URL path for video content only
+                  const urlPath = `/${contentType}s/${item._id || item.id}`;
                   
                   // Get image URL
                   const imageUrl = getImageUrl(item);
@@ -528,18 +523,16 @@ const Profile = () => {
                           )}
                           
                           {/* Play button for videos */}
-                          {(contentType === 'short' || contentType === 'film') && (
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                              <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                                </svg>
-                              </div>
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                              </svg>
                             </div>
-                          )}
+                          </div>
                           
                           {/* Duration badge for videos */}
-                          {(contentType === 'short' || contentType === 'film') && item.duration && (
+                          {item.duration && (
                             <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
                               {contentType === 'short' 
                                 ? `${Math.floor(item.duration)}s` 
@@ -579,7 +572,7 @@ const Profile = () => {
                     ? 'This user has not uploaded any content yet.' 
                     : activeTab === 'liked'
                       ? 'No liked content yet. Explore and like some content!'
-                      : `This user has not uploaded any ${activeTab === 'image' ? 'images' : activeTab === 'short' ? 'short clips' : 'films'} yet.`}
+                      : `This user has not uploaded any ${activeTab === 'short' ? 'short clips' : 'films'} yet.`}
                 </p>
                 {isOwnProfile ? (
                   <Link to="/upload" className="btn-primary">Upload Something</Link>

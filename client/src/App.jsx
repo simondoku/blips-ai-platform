@@ -8,8 +8,6 @@ import WelcomeAnimation from './components/animations/WelcomeAnimation';
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'));
 const Explore = lazy(() => import('./pages/Explore'));
-const Images = lazy(() => import('./pages/Images'));
-const ImageDetail = lazy(() => import('./pages/Images/ImageDetail'));
 const Shorts = lazy(() => import('./pages/Shorts'));
 const ShortDetail = lazy(() => import('./pages/Shorts/ShortDetail'));
 const Films = lazy(() => import('./pages/Films'));
@@ -83,8 +81,7 @@ function AppContent() {
             : <Layout><Home /></Layout>
         } />
         <Route path="/explore" element={<Layout><Explore /></Layout>} />
-        <Route path="/images" element={<Layout><Images /></Layout>} />
-        <Route path="/images/:id" element={<Layout><ImageDetail /></Layout>} />
+
         <Route path="/shorts" element={<Layout><Shorts /></Layout>} />
         <Route path="/shorts/:id" element={<Layout><ShortDetail /></Layout>} />
         <Route path="/films" element={<Layout><Films /></Layout>} />

@@ -6,10 +6,9 @@ import { uploadService } from '../../services/uploadService';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Upload = () => {
-  const [selectedTab, setSelectedTab] = useState('image');
+  const [selectedTab, setSelectedTab] = useState('short');
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [filePreview, setFilePreview] = useState(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
@@ -62,52 +61,19 @@ const Upload = () => {
   
   // Process the selected file
   const handleFile = (file) => {
-    // Validate file type based on selected tab
-    const isValid = validateFileType(file);
-    if (!isValid) {
-      setError(`Please select a valid ${selectedTab} file.`);
+    // Validate file type - only accept video files
+    if (!file.type.startsWith('video/')) {
+      setError('Please select a valid video file.');
       return;
     }
     
     setSelectedFile(file);
     setError('');
-    
-    // Create preview for image files
-    if (selectedTab === 'image' && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFilePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // For video files, use a generic preview
-      setFilePreview(null);
-    }
-  };
-  
-  // Validate file type based on selected tab
-  const validateFileType = (file) => {
-    if (selectedTab === 'image') {
-      return file.type.startsWith('image/');
-    } else if (selectedTab === 'short' || selectedTab === 'film') {
-      return file.type.startsWith('video/');
-    }
-    return false;
   };
   
   // Get categories based on content type
   const getCategories = () => {
     switch (selectedTab) {
-      case 'image':
-        return [
-          { id: 'digital-art', name: 'Digital Art' },
-          { id: 'portraits', name: 'Portraits' },
-          { id: 'environments', name: 'Environments' },
-          { id: 'characters', name: 'Characters' },
-          { id: 'illustrations', name: 'Illustrations' },
-          { id: 'abstract', name: 'Abstract' },
-          { id: 'other', name: 'Other' }
-        ];
       case 'short':
         return [
           { id: 'animation', name: 'Animation' },
@@ -197,7 +163,7 @@ const handleSubmit = async (e) => {
         submitFormData(formData);
       }
     } else {
-      // For images, submit directly
+      // Default case
       submitFormData(formData);
     }
   } catch (error) {
@@ -251,11 +217,11 @@ const submitFormData = async (formData) => {
   return (
     <div className="py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-center">Upload Your AI Creation</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center">Upload Your AI Video Creation</h1>
         
         {/* Content type tabs */}
         <div className="flex space-x-2 mb-8">
-          {['image', 'short', 'film'].map((tab) => (
+          {['short', 'film'].map((tab) => (
             <button
               key={tab}
               className={`px-6 py-3 rounded-md font-medium transition-colors ${
@@ -266,7 +232,6 @@ const submitFormData = async (formData) => {
               onClick={() => {
                 setSelectedTab(tab);
                 setSelectedFile(null);
-                setFilePreview(null);
                 setError('');
               }}
             >
@@ -298,29 +263,12 @@ const submitFormData = async (formData) => {
           >
             {selectedFile ? (
               <div className="w-full flex flex-col items-center">
-                {filePreview ? (
-                  // Show image preview for image uploads
-                  <div className="mb-4 w-64 h-64 flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={filePreview} 
-                      alt="Preview" 
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  </div>
-                ) : (
-                  // Show file icon for other types
-                  <div className="mb-4 w-16 h-16 rounded-full bg-blips-purple/20 flex items-center justify-center">
-                    {selectedTab === 'image' ? (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blips-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blips-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    )}
-                  </div>
-                )}
+                {/* Show file icon for video files */}
+                <div className="mb-4 w-16 h-16 rounded-full bg-blips-purple/20 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blips-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
                 
                 <p className="text-blips-text-secondary mb-2">{selectedFile.name}</p>
                 <button 
@@ -328,7 +276,6 @@ const submitFormData = async (formData) => {
                   className="text-blips-purple hover:underline"
                   onClick={() => {
                     setSelectedFile(null);
-                    setFilePreview(null);
                   }}
                 >
                   Remove file
@@ -341,7 +288,7 @@ const submitFormData = async (formData) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 </div>
-                <p className="text-white mb-2">Drag and drop your {selectedTab} here</p>
+                <p className="text-white mb-2">Drag and drop your {selectedTab} video here</p>
                 <p className="text-blips-text-secondary mb-4">or</p>
                 <button 
                   type="button"
@@ -354,7 +301,7 @@ const submitFormData = async (formData) => {
                   ref={fileInputRef}
                   type="file" 
                   className="hidden" 
-                  accept={selectedTab === 'image' ? 'image/*' : 'video/*'}
+                  accept="video/*"
                   onChange={handleFileChange}
                 />
               </>

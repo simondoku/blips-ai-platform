@@ -106,27 +106,7 @@ const Home = () => {
         <div className="container mx-auto">
           <h2 className="text-3xl font-bold mb-12 text-center">Discover AI-Generated Content</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Images Card */}
-            <motion.div 
-              className="card card-hover p-8 relative overflow-hidden"
-              whileHover={{ y: -5, boxShadow: '0 0 20px rgba(108, 99, 255, 0.3)' }}
-            >
-              <div className="h-40 mb-6 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-blips-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold mb-2">AI Images</h3>
-              <p className="text-blips-text-secondary mb-6">Explore stunning AI-generated artwork, illustrations, and photographs.</p>
-              <Link to="/images" className="text-blips-purple hover:underline inline-flex items-center">
-                Browse Images
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </Link>
-            </motion.div>
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Short Clips Card */}
             <motion.div 
               className="card card-hover p-8 relative overflow-hidden"

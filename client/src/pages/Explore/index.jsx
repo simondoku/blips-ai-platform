@@ -8,15 +8,14 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 // Content types for filter options
 const CONTENT_TYPES = [
   { id: 'all', name: 'All Content' },
-  { id: 'image', name: 'Images' },
   { id: 'short', name: 'Short Clips' },
   { id: 'film', name: 'Films' }
 ];
 
 // Trending tags
 const TRENDING_TAGS = [
-  'AI Art', 'Photorealistic', 'Abstract', 'Character Design', 
-  'Animation', 'Surreal', 'Landscape', 'Sci-Fi', 'Fantasy'
+  'Animation', 'Motion Graphics', 'Visual Effects', 'Sci-Fi', 'Fantasy',
+  'Experimental', 'Drama', 'Documentary', 'AI Generated'
 ];
 
 const Explore = () => {
@@ -176,19 +175,16 @@ const Explore = () => {
   
   // Helper function to get content URL path
   const getContentPath = (item) => {
-    const contentType = item.contentType || 'image';
-    return contentType === 'image' 
-      ? `/images/${item._id}` 
-      : `/${contentType}s/${item._id}`;
+    const contentType = item.contentType || 'short';
+    return `/${contentType}s/${item._id}`;
   };
   
-  // Helper function to get correct image URL
+  // Helper function to get correct thumbnail URL
   const getImageUrl = (item) => {
     if (!item) return null;
     
-    const url = item.contentType === 'image' ? 
-      item.fileUrl : 
-      item.thumbnailUrl;
+    // For video content, use thumbnail URL
+    const url = item.thumbnailUrl;
     
     if (!url) return null;
     
@@ -215,12 +211,11 @@ const Explore = () => {
   const renderThumbnail = (item) => {
     // Color gradient based on content type
     const gradients = {
-      image: 'from-pink-500/20 to-purple-500/20',
       short: 'from-blue-500/20 to-cyan-500/20',
       film: 'from-amber-500/20 to-red-500/20'
     };
     
-    const contentType = item.contentType || 'image';
+    const contentType = item.contentType || 'short';
     const imageUrl = getImageUrl(item);
     
     return (

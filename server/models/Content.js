@@ -16,7 +16,7 @@ const contentSchema = new mongoose.Schema({
   contentType: {
     type: String,
     required: true,
-    enum: ['image', 'short', 'film']
+    enum: ['short', 'film']
   },
   fileUrl: {
     type: String,
@@ -33,7 +33,7 @@ const contentSchema = new mongoose.Schema({
   },
   duration: {
     type: Number,
-    default: 0  // 0 for images, seconds for videos/films
+    default: 0  // seconds for videos/films
   },
   tags: [{
     type: String,

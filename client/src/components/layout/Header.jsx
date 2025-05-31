@@ -12,7 +12,7 @@ const Header = ({ isAuthenticated }) => {
   const { logout } = useAuth(); // Get logout function from auth context
   
   // Determine if we're on one of the main content pages
-  const isContentPage = ['/images', '/shorts', '/films'].includes(location.pathname);
+  const isContentPage = ['/shorts', '/films'].includes(location.pathname);
   
   // Handle logout
   const handleLogout = async () => {

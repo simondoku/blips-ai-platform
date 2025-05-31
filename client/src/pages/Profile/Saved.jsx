@@ -45,21 +45,17 @@ const Saved = () => {
     setActiveTab(tab);
   };
   
-  // Helper function to get the correct URL for a content item
+  // Helper function to get the correct URL for video content
   const getContentUrl = (item) => {
-    const contentType = item.contentType || 'image';
-    return contentType === 'image' 
-      ? `/images/${item._id}` 
-      : `/${contentType}s/${item._id}`;
+    const contentType = item.contentType || 'short';
+    return `/${contentType}s/${item._id}`;
   };
   
-  // Helper function to get image URL
+  // Helper function to get thumbnail URL for video content
   const getImageUrl = (item) => {
     if (!item) return null;
     
-    const url = item.contentType === 'image' ? 
-      item.fileUrl : 
-      item.thumbnailUrl;
+    const url = item.thumbnailUrl;
     
     if (!url) return null;
     
@@ -120,7 +116,6 @@ const Saved = () => {
           <div className="flex overflow-x-auto scrollbar-hide">
             {[
               { id: 'all', label: 'All Saved' },
-              { id: 'image', label: 'Images' },
               { id: 'short', label: 'Short Clips' },
               { id: 'film', label: 'Films' },
             ].map((tab) => (
@@ -168,15 +163,13 @@ const Saved = () => {
                     />
                     
                     {/* Play button for videos */}
-                    {(item.contentType === 'short' || item.contentType === 'film') && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                          </svg>
-                        </div>
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
                       </div>
-                    )}
+                    </div>
                   </div>
                   
                   {/* Content Info */}

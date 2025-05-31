@@ -69,10 +69,8 @@ const Dashboard = () => {
             // Determine content type
             const contentType = item.contentType || 'content';
             
-            // Handle URL paths appropriately
-            const urlPath = contentType === 'short' || contentType === 'film' ? 
-              `/${contentType}s/${item._id || item.id}` : 
-              `/images/${item._id || item.id}`;
+            // Handle URL paths appropriately - only for video content
+            const urlPath = `/${contentType}s/${item._id || item.id}`;
             
             // Get preview image URL with proper handling
             const imageUrl = getContentImageUrl(item);
@@ -123,13 +121,12 @@ const Dashboard = () => {
     </section>
   );
 
-  // Helper function to get correct image URL
+  // Helper function to get correct thumbnail URL
   const getContentImageUrl = (item) => {
     if (!item) return null;
     
-    const url = item.contentType === 'image' ? 
-      item.fileUrl : 
-      item.thumbnailUrl;
+    // For video content, use thumbnail URL
+    const url = item.thumbnailUrl;
     
     if (!url) return null;
     
@@ -183,7 +180,7 @@ const Dashboard = () => {
         className="bg-blips-dark rounded-lg p-6 mb-8"
       >
         <h1 className="text-2xl font-bold mb-2">Welcome back!</h1>
-        <p className="text-blips-text-secondary">Discover the latest AI-generated content tailored for you.</p>
+        <p className="text-blips-text-secondary">Discover the latest AI-generated video content tailored for you.</p>
       </motion.div>
       
       {/* For You Section */}

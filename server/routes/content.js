@@ -6,7 +6,6 @@ const { authenticateToken } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
 // Public routes
-router.get('/images', contentController.getImages);
 router.get('/shorts', contentController.getShorts);
 router.get('/films', contentController.getFilms);
 router.get('/explore', contentController.exploreContent);

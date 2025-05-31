@@ -6,41 +6,6 @@ const path = require('path');
 const fs = require('fs').promises;
 const { createCanvas } = require('canvas'); // You'll need to install this: npm install canvas
 
-// Get Images
-exports.getImages = async (req, res) => {
-  try {
-    const { category, limit = 30, page = 1 } = req.query;
-    const skip = (page - 1) * limit;
-    
-    const query = { contentType: 'image', isPublic: true };
-    if (category && category !== 'for-you') {
-      query.category = category;
-    }
-    
-    const images = await Content.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .populate('creator', 'username displayName profileImage');
-    
-    const total = await Content.countDocuments(query);
-    
-    res.json({
-      images,
-      pagination: {
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Server error', 
-      error: error.message 
-    });
-  }
-};
-
 // Get Shorts
 exports.getShorts = async (req, res) => {
   try {
@@ -358,11 +323,9 @@ exports.uploadContent = async (req, res) => {
     // Ensure path uses forward slashes for consistency across platforms
     fileUrl = fileUrl.replace(/\\/g, '/')
 
-    // Handle thumbnails for different content types
+    // Handle thumbnails for video content only
     let thumbnailUrl = '';
-    if (contentType === 'image') {
-      thumbnailUrl = fileUrl; 
-    }else if (contentType === 'short' || contentType === 'film') {
+    if (contentType === 'short' || contentType === 'film') {
       // Create a thumbnails directory inside the appropriate content type folder
       const contentTypeDir = contentType === 'short' ? 'shorts' : 'films';
       const thumbnailDir = path.join(__dirname, '../uploads', contentTypeDir, 'thumbnails');
@@ -486,7 +449,7 @@ exports.uploadContent = async (req, res) => {
       fileUrl,
       thumbnailUrl,
       creator: req.user.id,
-      duration: contentType === 'image' ? 0 : parseInt(duration || 0, 10),
+      duration: contentType === 'short' || contentType === 'film' ? parseInt(duration || 0, 10) : 0,
       category: category || 'other',
       tags: parsedTags,
       isPublic: true // Default to public
