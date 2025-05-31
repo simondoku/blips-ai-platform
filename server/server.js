@@ -32,8 +32,8 @@ app.options('*', (req, res) => {
 });
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // Create uploads directory if it doesn't exist
 const fs = require('fs');
