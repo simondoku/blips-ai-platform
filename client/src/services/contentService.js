@@ -174,7 +174,18 @@ export const contentService = {
       console.error('Error deleting content:', error);
       throw error;
     }
-  }
+  },
+
+  // Get stream URL for video (handles S3 signed URLs)
+  getStreamUrl: async (id) => {
+    try {
+      const response = await api.get(`/content/${id}/stream`);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting stream URL:', error);
+      throw error;
+    }
+  },
 };
 
 export default contentService;

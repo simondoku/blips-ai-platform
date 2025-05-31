@@ -10,6 +10,7 @@ router.get('/shorts', contentController.getShorts);
 router.get('/films', contentController.getFilms);
 router.get('/explore', contentController.exploreContent);
 router.get('/:id', contentController.getContentById);
+router.get('/:id/stream', contentController.getStreamUrl);
 router.get('/:id/download', contentController.downloadContent);
 
 // Protected routes

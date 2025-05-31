@@ -5,6 +5,7 @@ const User = require('../models/User');
 const path = require('path');
 const fs = require('fs').promises;
 const { createCanvas } = require('canvas'); // You'll need to install this: npm install canvas
+const s3Service = require('../services/s3Service');
 
 // Get Shorts
 exports.getShorts = async (req, res) => {
@@ -308,39 +309,32 @@ exports.uploadContent = async (req, res) => {
     
     // Validate required fields
     if (!title || !contentType) {
-      // If validation fails, delete the uploaded file
-      await fs.unlink(req.file.path);
+      // If validation fails, delete the uploaded file (only for local storage)
+      if (!s3Service.isS3Enabled() && req.file.path) {
+        await fs.unlink(req.file.path);
+      }
       return res.status(400).json({ message: 'Title and content type are required' });
     }
     
-    // Create file URL relative to server
-    let fileUrl = req.file.path.split('uploads')[1]; // Normalize path for all OSes
-    if (fileUrl.startsWith('/')) {
-      fileUrl = fileUrl.substring(1); // Remove leading slash
+    // Handle file URL based on storage type
+    let fileUrl;
+    if (s3Service.isS3Enabled()) {
+      // For S3, use the location provided by multer-s3
+      fileUrl = req.file.location || req.file.key;
+    } else {
+      // For local storage, create relative path
+      fileUrl = req.file.path.split('uploads')[1]; // Normalize path for all OSes
+      if (fileUrl.startsWith('/')) {
+        fileUrl = fileUrl.substring(1); // Remove leading slash
+      }
+      fileUrl = 'uploads/' + fileUrl;
+      // Ensure path uses forward slashes for consistency across platforms
+      fileUrl = fileUrl.replace(/\\/g, '/');
     }
-    fileUrl = 'uploads/' + fileUrl;
-    
-    // Ensure path uses forward slashes for consistency across platforms
-    fileUrl = fileUrl.replace(/\\/g, '/')
 
     // Handle thumbnails for video content only
     let thumbnailUrl = '';
     if (contentType === 'short' || contentType === 'film') {
-      // Create a thumbnails directory inside the appropriate content type folder
-      const contentTypeDir = contentType === 'short' ? 'shorts' : 'films';
-      const thumbnailDir = path.join(__dirname, '../uploads', contentTypeDir, 'thumbnails');
-      
-      // Create thumbnails directory if it doesn't exist
-      try {
-        await fs.mkdir(thumbnailDir, { recursive: true });
-      } catch (mkdirErr) {
-        console.error('Error creating thumbnails directory:', mkdirErr);
-      }
-      
-      // Generate a unique thumbnail filename
-      const thumbFilename = `thumb_${Date.now()}_${path.basename(req.file.originalname, path.extname(req.file.originalname))}.png`;
-      const thumbnailPath = path.join(thumbnailDir, thumbFilename);
-      
       try {
         // Create a canvas with the video title as a placeholder thumbnail
         const canvas = createCanvas(640, 360); // 16:9 aspect ratio
@@ -420,14 +414,37 @@ exports.uploadContent = async (req, res) => {
         
         // Save the canvas as a PNG
         const buffer = canvas.toBuffer('image/png');
-        await fs.writeFile(thumbnailPath, buffer);
         
-        // Create a relative URL for the thumbnail
-        let thumbUrl = path.relative(path.join(__dirname, '..'), thumbnailPath);
-        thumbUrl = thumbUrl.replace(/\\/g, '/'); // Ensure forward slashes
-        thumbnailUrl = thumbUrl;
-        
-        console.log('Generated thumbnail URL:', thumbnailUrl);
+        if (s3Service.isS3Enabled()) {
+          // For S3, we'll upload the thumbnail directly to S3
+          // Note: You'll need to implement thumbnail upload to S3 separately
+          // For now, we'll leave thumbnailUrl empty and handle it client-side
+          thumbnailUrl = '';
+        } else {
+          // For local storage, save to local thumbnails directory
+          const contentTypeDir = contentType === 'short' ? 'shorts' : 'films';
+          const thumbnailDir = path.join(__dirname, '../uploads', contentTypeDir, 'thumbnails');
+          
+          // Create thumbnails directory if it doesn't exist
+          try {
+            await fs.mkdir(thumbnailDir, { recursive: true });
+          } catch (mkdirErr) {
+            console.error('Error creating thumbnails directory:', mkdirErr);
+          }
+          
+          // Generate a unique thumbnail filename
+          const thumbFilename = `thumb_${Date.now()}_${path.basename(req.file.originalname, path.extname(req.file.originalname))}.png`;
+          const thumbnailPath = path.join(thumbnailDir, thumbFilename);
+          
+          await fs.writeFile(thumbnailPath, buffer);
+          
+          // Create a relative URL for the thumbnail
+          let thumbUrl = path.relative(path.join(__dirname, '..'), thumbnailPath);
+          thumbUrl = thumbUrl.replace(/\\/g, '/'); // Ensure forward slashes
+          thumbnailUrl = thumbUrl;
+          
+          console.log('Generated thumbnail URL:', thumbnailUrl);
+        }
         
       } catch (thumbError) {
         console.error('Error creating thumbnail:', thumbError);
@@ -577,16 +594,30 @@ exports.deleteContent = async (req, res) => {
     
     // Delete the actual files
     try {
-      // Delete main file
-      if (filePath) {
-        const absoluteFilePath = path.join(__dirname, '..', filePath);
-        await fs.unlink(absoluteFilePath);
-      }
-      
-      // Delete thumbnail if it exists and is different from the main file
-      if (thumbnailPath && thumbnailPath !== filePath) {
-        const absoluteThumbnailPath = path.join(__dirname, '..', thumbnailPath);
-        await fs.unlink(absoluteThumbnailPath);
+      if (s3Service.isS3Enabled()) {
+        // Delete files from S3
+        if (filePath) {
+          const s3Key = s3Service.extractS3Key(filePath);
+          await s3Service.deleteFile(s3Key);
+        }
+        
+        // Delete thumbnail from S3 if it exists and is different from the main file
+        if (thumbnailPath && thumbnailPath !== filePath) {
+          const thumbnailS3Key = s3Service.extractS3Key(thumbnailPath);
+          await s3Service.deleteFile(thumbnailS3Key);
+        }
+      } else {
+        // Delete files from local storage
+        if (filePath) {
+          const absoluteFilePath = path.join(__dirname, '..', filePath);
+          await fs.unlink(absoluteFilePath);
+        }
+        
+        // Delete thumbnail if it exists and is different from the main file
+        if (thumbnailPath && thumbnailPath !== filePath) {
+          const absoluteThumbnailPath = path.join(__dirname, '..', thumbnailPath);
+          await fs.unlink(absoluteThumbnailPath);
+        }
       }
     } catch (fileError) {
       console.error('Error deleting files:', fileError);
@@ -769,27 +800,89 @@ exports.downloadContent = async (req, res) => {
       return res.status(404).json({ message: 'Content not found' });
     }
     
-    // Get the file path
-    const filePath = path.join(__dirname, '..', content.fileUrl);
+    if (s3Service.isS3Enabled()) {
+      // For S3, generate a signed URL for download
+      try {
+        const s3Key = s3Service.extractS3Key(content.fileUrl);
+        const signedUrl = await s3Service.getSignedUrl(s3Key, 3600); // 1 hour expiration
+        
+        // Increment download count
+        content.stats.downloads = (content.stats.downloads || 0) + 1;
+        await content.save();
+        
+        // Redirect to the signed URL
+        res.json({
+          downloadUrl: signedUrl,
+          filename: path.basename(content.fileUrl)
+        });
+      } catch (s3Error) {
+        console.error('S3 download error:', s3Error);
+        return res.status(500).json({ message: 'Failed to generate download link' });
+      }
+    } else {
+      // For local storage, stream the file directly
+      const filePath = path.join(__dirname, '..', content.fileUrl);
+      
+      // Check if file exists
+      try {
+        await fs.access(filePath);
+      } catch (err) {
+        return res.status(404).json({ message: 'File not found' });
+      }
+      
+      // Set appropriate headers for download
+      const filename = path.basename(filePath);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      // Stream the file to the client
+      const fileStream = require('fs').createReadStream(filePath);
+      fileStream.pipe(res);
+      
+      // Increment download count
+      content.stats.downloads = (content.stats.downloads || 0) + 1;
+      await content.save();
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+
+// Get Stream URL (for S3 signed URLs)
+exports.getStreamUrl = async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.id);
     
-    // Check if file exists
-    try {
-      await fs.access(filePath);
-    } catch (err) {
-      return res.status(404).json({ message: 'File not found' });
+    if (!content) {
+      return res.status(404).json({ message: 'Content not found' });
     }
     
-    // Set appropriate headers for download
-    const filename = path.basename(filePath);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    // Stream the file to the client
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
-    
-    // Increment download count (optional)
-    content.stats.downloads = (content.stats.downloads || 0) + 1;
-    await content.save();
+    if (s3Service.isS3Enabled()) {
+      // For S3, generate a signed URL for streaming
+      try {
+        const s3Key = s3Service.extractS3Key(content.fileUrl);
+        const signedUrl = await s3Service.getSignedUrl(s3Key, 3600); // 1 hour expiration
+        
+        res.json({
+          streamUrl: signedUrl,
+          expiresIn: 3600
+        });
+      } catch (s3Error) {
+        console.error('S3 stream URL error:', s3Error);
+        return res.status(500).json({ message: 'Failed to generate stream URL' });
+      }
+    } else {
+      // For local storage, return the direct file URL
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const streamUrl = `${baseUrl}/${content.fileUrl}`;
+      
+      res.json({
+        streamUrl: streamUrl,
+        expiresIn: null // Local URLs don't expire
+      });
+    }
   } catch (error) {
     res.status(500).json({ 
       message: 'Server error', 
