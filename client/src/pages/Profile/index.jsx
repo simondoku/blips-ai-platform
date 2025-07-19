@@ -262,16 +262,16 @@ const Profile = () => {
     
     // If it's a relative path starting with uploads
     if (url.startsWith('/uploads')) {
-      return `http://localhost:5001${url}`;
+      return `https://blips-ai-platform.vercel.app${url}`;
     }
     
     // If it's a relative path without leading slash
     if (url.startsWith('uploads/')) {
-      return `http://localhost:5001/${url}`;
+      return `https://blips-ai-platform.vercel.app/${url}`;
     }
     
     // Default fallback
-    return `http://localhost:5001/${url}`;
+    return `https://blips-ai-platform.vercel.app/${url}`;
   };
   
   // Get profile image URL
@@ -290,16 +290,16 @@ const Profile = () => {
     
     // If it's a relative path starting with uploads
     if (profileImage.startsWith('/uploads')) {
-      return `http://localhost:5001${profileImage}`;
+      return `https://blips-ai-platform.vercel.app${profileImage}`;
     }
     
     // If it's a relative path without leading slash
     if (profileImage.startsWith('uploads/')) {
-      return `http://localhost:5001/${profileImage}`;
+      return `https://blips-ai-platform.vercel.app/${profileImage}`;
     }
     
     // Default fallback
-    return `http://localhost:5001/${profileImage}`;
+    return `https://blips-ai-platform.vercel.app/${profileImage}`;
   };
   
   if (isLoading && !user) {

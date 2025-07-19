@@ -204,7 +204,7 @@ const mockApi = {
 
 // Create real API client
 const isProd = import.meta.env.PROD;
-const API_URL = import.meta.env.VITE_API_URL || (isProd ? '/proxy-api' : 'http://localhost:5001/api');
+const API_URL = import.meta.env.VITE_API_URL || (isProd ? 'https://blips-ai-platform.vercel.app/api' : 'http://localhost:5001/api');
 
 console.log('Using API URL:', useMockAuth ? 'Mock API (No server needed)' : API_URL);
 
