@@ -1,20 +1,10 @@
 {
   "version": 2,
-  "public": true,
   "functions": {
     "api/**/*.js": {
       "maxDuration": 300
     }
   },
-  "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    }
-  ],
   "routes": [
     {
       "src": "/api/(.*)",
